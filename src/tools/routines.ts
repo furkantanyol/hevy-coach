@@ -70,10 +70,10 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
   server.registerTool(
     "create-routine",
     {
-      description: `Create a new workout routine in Hevy. Provide title, optional folder ID, and exercises with sets.
-Each exercise needs an exercise_template_id (use find-exercise or batch-find-exercises to look up IDs).
-Sets support: type, weight_kg, reps, distance_meters, duration_seconds, custom_metric, rpe, rep_range ({start, end}).
-Exercises support: rest_seconds for rest timer between sets.`,
+      description: `Create a new workout routine in Hevy.
+WORKFLOW: First call batch-find-exercises with all exercise names to get template IDs, then call this tool.
+Each exercise needs: exercise_template_id (hex string like "D04AC939"), optional rest_seconds, optional notes.
+Each set needs: type (warmup/normal/failure/dropset), weight_kg, reps. Optional: distance_meters, duration_seconds, custom_metric, rpe, rep_range ({start, end}).`,
       inputSchema: {
         title: z.string().min(1),
         folderId: z.coerce.number().optional(),

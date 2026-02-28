@@ -130,8 +130,8 @@ Use this to identify plateaus, track PRs, and inform programming decisions.`,
   server.registerTool(
     "find-exercise",
     {
-      description: `Search for exercises by name or muscle group. Returns compact id + title pairs.
-Use this for single lookups. For multiple exercises at once, use batch-find-exercises instead.`,
+      description: `Search for a SINGLE exercise by name or muscle group. Returns compact id + title pairs.
+IMPORTANT: If you need to look up 2+ exercises (e.g. when creating a routine), use batch-find-exercises instead — it's a single call that resolves all names at once.`,
       inputSchema: {
         query: z.string().min(1).describe("Exercise name or muscle group to search for"),
       },
@@ -155,9 +155,10 @@ Use this for single lookups. For multiple exercises at once, use batch-find-exer
   server.registerTool(
     "batch-find-exercises",
     {
-      description: `Look up multiple exercises at once. Loads the exercise library ONCE and matches all queries.
-Returns a map of query → best match (id + title). Much more efficient than calling find-exercise multiple times.
-Use this when creating routines to resolve all exercise names to template IDs in one call.`,
+      description: `PREFERRED: Look up multiple exercises at once in a SINGLE call. Loads the exercise library ONCE and matches all queries.
+Returns a map of query → {id, title}. ALWAYS use this instead of calling find-exercise multiple times.
+Example: queries: ["Bench Press", "Squat", "Deadlift"] → returns all 3 IDs in one response.
+Use this BEFORE create-routine to resolve all exercise names to template IDs.`,
       inputSchema: {
         queries: z.array(z.string().min(1)).min(1).describe("Array of exercise names to look up"),
       },
