@@ -1,109 +1,142 @@
-# HevyCoach — AI Personal Training System
+# HevyCoach
 
-Turn Claude into your personal trainer. It connects to your Hevy account, designs your programs, pushes routines to Hevy, and coaches you daily.
+AI personal training system that connects to [Hevy](https://hevyapp.com) via MCP (Model Context Protocol). Not just another API wrapper — HevyCoach adds coaching intelligence on top of workout data.
+
+**What makes this different from existing Hevy MCP servers:** Other servers give you CRUD operations. HevyCoach adds the brain — workout analysis, progression tracking with Epley 1RM estimation, training summaries, and exercise search. Combined with the CLAUDE.md coaching prompt, it turns Claude into a full athletic coach covering strength, hypertrophy, VO2max, mobility, flexibility, and longevity.
 
 ## What You Get
 
-- **Personalized programming** — strength, hypertrophy, mobility, conditioning
+- **Complete athletic programming** — strength, hypertrophy, VO2max, mobility, flexibility, stamina, longevity
+- **Coaching intelligence** — workout analysis, progression tracking, automatic adaptation recommendations
 - **Auto-pushed to Hevy** — routines appear in your app, ready to log
-- **Daily briefings** — morning message with today's workout + coaching cues
-- **Adaptive coaching** — Claude reads your completed workouts and adjusts
-- **Weekly reviews** — volume tracking, PR highlights, program adjustments
+- **Daily briefings** — morning message with today's workout + conditioning + mobility
+- **Adaptive coaching** — reads your completed workouts and adjusts programming
+- **Weekly reviews** — volume tracking, PR highlights, conditioning adherence, program adjustments
 
-## Setup (5 minutes)
+## Setup
 
 ### Prerequisites
 
-- [Claude Desktop](https://claude.ai/download) installed
-- [Hevy Pro](https://hevy.com) subscription (required for API access)
-- Node.js 20+ installed
+- [Hevy Pro](https://hevyapp.com) subscription (required for API access)
+- API key from Hevy Settings → API
+- Node.js 18+
+- [Claude Desktop](https://claude.ai/download) (or any MCP-compatible client)
 
-### Step 1: Get your Hevy API key
+### Install
 
-Go to [hevy.com/settings](https://hevy.com/settings) → Developer → Copy your API key.
+```bash
+git clone https://github.com/AugmentedMind/hevy-coach.git
+cd hevy-coach
+npm install
+npm run build
+```
 
-### Step 2: Install the Hevy MCP server
+### Configure Claude Desktop
 
-The coaching brain runs as a Claude project/prompt. The MCP server is the existing `hevy-mcp` package that gives Claude access to your Hevy data.
-
-Add this to your Claude Desktop MCP config (`~/Library/Application Support/Claude/claude_desktop_config.json` on Mac):
+Add to your MCP config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
-    "hevy": {
-      "command": "npx",
-      "args": ["-y", "hevy-mcp@latest"],
+    "hevy-coach": {
+      "command": "node",
+      "args": ["/absolute/path/to/hevy-coach/dist/cli.js"],
       "env": {
-        "HEVY_API_KEY": "your-api-key-here"
+        "HEVY_API_KEY": "your-hevy-api-key"
       }
     }
   }
 }
 ```
 
-Restart Claude Desktop.
+Restart Claude Desktop. The tools appear in the MCP tools list.
 
-### Step 3: Add the coaching brain
+### Add the Coaching Brain
 
 Create a Claude Project called **"HevyCoach"**:
 
 1. Open Claude Desktop → Projects → New Project
 2. Name it "HevyCoach"
-3. In Project Instructions, paste the contents of `CLAUDE.md` from this repo
+3. In Project Instructions, paste the contents of `CLAUDE.md`
 4. Add `training-history.md` as a project file
 
-### Step 4: Start your first session
+### Start Training
 
 Open the HevyCoach project and say:
 
 > "I want to start training with you. Let's do the onboarding."
 
-Claude will ask you questions about your body, training history, goals, and preferences. After collecting everything, it will:
+Claude will ask about your body, training history, goals, and preferences. Then it generates your full program (strength + conditioning + mobility) and pushes routines to Hevy.
 
-1. Generate your personalized weekly program
-2. Push all routines to your Hevy app
-3. Set you up for daily coaching
+### Daily Automation (Optional)
 
-### Step 5: Set up daily reminders (optional)
-
-In Claude Desktop, create two scheduled tasks:
+Create two Claude Desktop scheduled tasks:
 
 **Morning briefing (7 AM):**
-> "Read my HevyCoach program from the project. Tell me today's workout with warmup, exercises, sets, reps, and weights. Keep it concise and actionable."
+> Read my HevyCoach program. Tell me today's workout with warmup, exercises, sets/reps/weights, conditioning if scheduled, and daily mobility drills.
 
-**Evening sync (9 PM):**
-> "Check my latest Hevy workout using the get-workouts tool. Compare it to today's planned session from my HevyCoach program. Summarize what I did, note any progressions or missed targets, and tell me if you're adjusting anything for my next session."
+**Evening sync (11:59 PM):**
+> Fetch my latest Hevy workout. Analyze it against today's plan. Summarize performance, note progressions or missed targets, and adjust upcoming sessions if needed.
 
-## Mobile Access
+## Tools
 
-Create the same "HevyCoach" project on claude.ai (web). The project instructions carry over. You can ask "what's my workout today?" from your phone. Note: MCP tools (syncing with Hevy) only work from Claude Desktop.
+### Data Tools
+| Tool | Description |
+|------|-------------|
+| `get-workouts` | List recent workouts (paginated) |
+| `get-workout` | Get specific workout by ID |
+| `get-workout-count` | Total logged workouts |
+| `get-workout-events` | Track changes since a date |
+| `get-routines` | List saved routines |
+| `get-routine` | Get routine details |
+| `create-routine` | Push routine to Hevy |
+| `update-routine` | Modify existing routine |
+| `get-routine-folders` | List routine folders |
+| `create-routine-folder` | Create folder |
+| `get-exercise-templates` | Browse exercise library |
+| `get-exercise-template` | Get exercise details |
+| `get-exercise-history` | Past performance data |
+| `create-exercise-template` | Create custom exercise |
 
-## How It Works
+### Coaching Tools
+| Tool | Description |
+|------|-------------|
+| `analyze-workout` | Compare completed vs planned workout. Returns per-exercise analysis with progression recommendations. |
+| `get-training-summary` | Aggregate last N workouts: volume, frequency, consistency, duration trends. |
+| `get-exercise-progression` | Track exercise over time: weight/rep trends, estimated 1RM (Epley), plateau detection. |
+| `find-exercise` | Search exercises by name or muscle group. |
 
-```
-You ↔ Claude Desktop
-       ├── CLAUDE.md (your profile + program + coaching brain)
-       ├── training-history.md (long-term tracking)
-       ├── hevy-mcp (reads/writes your Hevy data)
-       └── Scheduled tasks (daily briefings + sync)
-```
-
-No backend. No database. No accounts. Just Claude + Hevy + two markdown files.
-
-## File Structure
+## Architecture
 
 ```
 hevy-coach/
-├── CLAUDE.md              # Coaching brain + user profile + current program
-├── training-history.md    # Long-term PR tracking + monthly reviews
-└── README.md              # This file
+├── src/
+│   ├── index.ts           # Server factory
+│   ├── cli.ts             # CLI entry point (stdio transport)
+│   ├── tools/
+│   │   ├── workouts.ts    # Workout CRUD
+│   │   ├── routines.ts    # Routine CRUD
+│   │   ├── exercises.ts   # Exercise templates
+│   │   └── coaching.ts    # Coaching intelligence (the differentiator)
+│   └── utils/
+│       ├── hevy-client.ts # Hevy API client
+│       └── response.ts    # MCP response helpers
+├── CLAUDE.md              # Coaching brain + user profile + program
+├── training-history.md    # Long-term tracking template
+└── package.json
 ```
 
-## Contributing
+## Development
 
-This is open source. If you use it and improve the coaching prompts, exercise science logic, or add new features — PRs welcome.
+```bash
+npm run build    # Compile TypeScript
+npm run dev      # Watch mode
+```
+
+## Credits
+
+Inspired by [chrisdoc/hevy-mcp](https://github.com/chrisdoc/hevy-mcp) and [tomtorggler/hevy-mcp-server](https://github.com/tomtorggler/hevy-mcp-server). Built from scratch with coaching intelligence as the core focus.
 
 ## License
 
-MIT
+MIT — Furkan Tanyol

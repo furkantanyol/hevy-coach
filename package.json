@@ -1,0 +1,54 @@
+{
+  "name": "hevy-coach",
+  "version": "0.1.0",
+  "description": "AI Personal Training MCP Server — turns Claude into your strength, conditioning, mobility, and longevity coach via Hevy",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "hevy-coach": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch --env-file .env src/cli.ts",
+    "start": "node --env-file .env dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "test": "vitest --run"
+  },
+  "keywords": [
+    "mcp",
+    "hevy",
+    "fitness",
+    "personal-trainer",
+    "ai-coaching",
+    "workout",
+    "strength",
+    "conditioning",
+    "mobility"
+  ],
+  "author": "Furkan Tanyol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AugmentedMind/hevy-coach.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "axios": "^1.13.5",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.13",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
