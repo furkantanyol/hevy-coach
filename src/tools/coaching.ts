@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { HevyClient, HevyWorkout, HevyExerciseHistoryEntry, HevyExerciseTemplate } from "../utils/hevy-client.js";
+import type { HevyClient, HevyWorkout, HevyExerciseHistoryEntry } from "../utils/hevy-client.js";
 import { jsonResponse, textResponse, errorResponse, getErrorMessage } from "../utils/response.js";
 
 export function registerCoachingTools(server: McpServer, client: HevyClient) {
@@ -181,7 +181,7 @@ Use this BEFORE create-routine to resolve all exercise names to template IDs.`,
           const partial = library.filter(
             (t) =>
               t.title.toLowerCase().includes(queryLower) ||
-              t.primary_muscle_group.toLowerCase().includes(queryLower)
+              t.primary.toLowerCase().includes(queryLower)
           );
           results[query] = partial.length > 0 ? { id: partial[0].id, title: partial[0].title } : null;
         }
@@ -197,18 +197,41 @@ Use this BEFORE create-routine to resolve all exercise names to template IDs.`,
   );
 }
 
-// ─── EXERCISE LIBRARY HELPERS ────────────────────────────────────────
+// ─── EXERCISE LIBRARY CACHE ──────────────────────────────────────────
+// Cached in-memory so multiple find/batch calls don't re-fetch 1000+ exercises.
+// Only stores id, title, muscle groups — minimal footprint.
 
-async function loadExerciseLibrary(client: HevyClient): Promise<HevyExerciseTemplate[]> {
-  const all: HevyExerciseTemplate[] = [];
+interface CachedExercise {
+  id: string;
+  title: string;
+  primary: string;
+  secondary: string[];
+}
+
+let exerciseCache: CachedExercise[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function loadExerciseLibrary(client: HevyClient): Promise<CachedExercise[]> {
+  const now = Date.now();
+  if (exerciseCache && now - cacheTimestamp < CACHE_TTL_MS) {
+    return exerciseCache;
+  }
+
+  const all: CachedExercise[] = [];
   let page = 1;
   while (page <= 10) {
     const result = await client.getExerciseTemplates(page, 100);
     if (!result.exercise_templates.length) break;
-    all.push(...result.exercise_templates);
+    for (const t of result.exercise_templates) {
+      all.push({ id: t.id, title: t.title, primary: t.primary_muscle_group, secondary: t.secondary_muscle_groups ?? [] });
+    }
     if (result.exercise_templates.length < 100) break;
     page++;
   }
+
+  exerciseCache = all;
+  cacheTimestamp = now;
   return all;
 }
 
@@ -219,8 +242,8 @@ async function searchExercises(client: HevyClient, query: string): Promise<Array
     .filter(
       (t) =>
         t.title.toLowerCase().includes(queryLower) ||
-        t.primary_muscle_group.toLowerCase().includes(queryLower) ||
-        t.secondary_muscle_groups?.some((m) => m.toLowerCase().includes(queryLower))
+        t.primary.toLowerCase().includes(queryLower) ||
+        t.secondary.some((m) => m.toLowerCase().includes(queryLower))
     )
     .map((t) => ({ id: t.id, title: t.title }));
 }
