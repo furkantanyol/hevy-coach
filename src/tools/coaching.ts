@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { HevyClient, HevyWorkout, HevyExerciseHistoryEntry } from "../utils/hevy-client.js";
+import type { HevyClient, HevyWorkout, HevyExerciseHistoryEntry, HevyExerciseTemplate } from "../utils/hevy-client.js";
 import { jsonResponse, textResponse, errorResponse, getErrorMessage } from "../utils/response.js";
 
 export function registerCoachingTools(server: McpServer, client: HevyClient) {
@@ -125,61 +125,103 @@ Use this to identify plateaus, track PRs, and inform programming decisions.`,
   );
 
   // ─── FIND EXERCISE ────────────────────────────────────────────────
-  // Search for exercises by name or muscle group — easier than browsing paginated templates.
+  // Search for exercises by name or muscle group — returns compact id+title pairs.
 
   server.registerTool(
     "find-exercise",
     {
-      description: `Search for exercises by name or muscle group. Returns matching exercise template IDs
-that can be used in routines. Searches across all pages of the exercise library.`,
+      description: `Search for exercises by name or muscle group. Returns compact id + title pairs.
+Use this for single lookups. For multiple exercises at once, use batch-find-exercises instead.`,
       inputSchema: {
         query: z.string().min(1).describe("Exercise name or muscle group to search for"),
       },
     },
     async ({ query }) => {
       try {
-        const allTemplates = [];
-        let page = 1;
-        const queryLower = query.toLowerCase();
-
-        // Search through pages until we have enough or run out
-        while (page <= 5) {
-          const result = await client.getExerciseTemplates(page, 100);
-          if (!result.exercise_templates.length) break;
-
-          const matches = result.exercise_templates.filter(
-            (t) =>
-              t.title.toLowerCase().includes(queryLower) ||
-              t.primary_muscle_group.toLowerCase().includes(queryLower) ||
-              t.secondary_muscle_groups?.some((m) => m.toLowerCase().includes(queryLower))
-          );
-          allTemplates.push(...matches);
-
-          if (result.exercise_templates.length < 100) break;
-          page++;
-        }
-
-        if (!allTemplates.length) {
+        const matches = await searchExercises(client, query);
+        if (!matches.length) {
           return textResponse(`No exercises found matching "${query}".`);
         }
-
-        return jsonResponse({
-          query,
-          matches: allTemplates.length,
-          exercises: allTemplates.map((t) => ({
-            id: t.id,
-            title: t.title,
-            primaryMuscle: t.primary_muscle_group,
-            secondaryMuscles: t.secondary_muscle_groups,
-            equipment: t.equipment,
-            isCustom: t.is_custom,
-          })),
-        });
+        return jsonResponse({ query, matches: matches.length, exercises: matches });
       } catch (error) {
         return errorResponse(getErrorMessage(error));
       }
     }
   );
+
+  // ─── BATCH FIND EXERCISES ──────────────────────────────────────────
+  // Resolve multiple exercise names to IDs in a single call. Loads library once.
+
+  server.registerTool(
+    "batch-find-exercises",
+    {
+      description: `Look up multiple exercises at once. Loads the exercise library ONCE and matches all queries.
+Returns a map of query → best match (id + title). Much more efficient than calling find-exercise multiple times.
+Use this when creating routines to resolve all exercise names to template IDs in one call.`,
+      inputSchema: {
+        queries: z.array(z.string().min(1)).min(1).describe("Array of exercise names to look up"),
+      },
+    },
+    async ({ queries }) => {
+      try {
+        // Load full exercise library once
+        const library = await loadExerciseLibrary(client);
+
+        const results: Record<string, { id: string; title: string } | null> = {};
+        for (const query of queries) {
+          const queryLower = query.toLowerCase();
+          // Try exact match first
+          const exact = library.find((t) => t.title.toLowerCase() === queryLower);
+          if (exact) {
+            results[query] = { id: exact.id, title: exact.title };
+            continue;
+          }
+          // Then partial match
+          const partial = library.filter(
+            (t) =>
+              t.title.toLowerCase().includes(queryLower) ||
+              t.primary_muscle_group.toLowerCase().includes(queryLower)
+          );
+          results[query] = partial.length > 0 ? { id: partial[0].id, title: partial[0].title } : null;
+        }
+
+        const found = Object.values(results).filter(Boolean).length;
+        const missing = queries.filter((q) => !results[q]);
+
+        return jsonResponse({ found, total: queries.length, missing, results });
+      } catch (error) {
+        return errorResponse(getErrorMessage(error));
+      }
+    }
+  );
+}
+
+// ─── EXERCISE LIBRARY HELPERS ────────────────────────────────────────
+
+async function loadExerciseLibrary(client: HevyClient): Promise<HevyExerciseTemplate[]> {
+  const all: HevyExerciseTemplate[] = [];
+  let page = 1;
+  while (page <= 10) {
+    const result = await client.getExerciseTemplates(page, 100);
+    if (!result.exercise_templates.length) break;
+    all.push(...result.exercise_templates);
+    if (result.exercise_templates.length < 100) break;
+    page++;
+  }
+  return all;
+}
+
+async function searchExercises(client: HevyClient, query: string): Promise<Array<{ id: string; title: string }>> {
+  const library = await loadExerciseLibrary(client);
+  const queryLower = query.toLowerCase();
+  return library
+    .filter(
+      (t) =>
+        t.title.toLowerCase().includes(queryLower) ||
+        t.primary_muscle_group.toLowerCase().includes(queryLower) ||
+        t.secondary_muscle_groups?.some((m) => m.toLowerCase().includes(queryLower))
+    )
+    .map((t) => ({ id: t.id, title: t.title }));
 }
 
 // ─── ANALYSIS HELPERS ─────────────────────────────────────────────────

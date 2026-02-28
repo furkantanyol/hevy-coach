@@ -136,7 +136,8 @@ Create two Claude Desktop scheduled tasks:
 | `analyze-workout` | Compare completed vs planned workout. Returns per-exercise analysis with progression recommendations. |
 | `get-training-summary` | Aggregate last N workouts: volume, frequency, consistency, duration trends. |
 | `get-exercise-progression` | Track exercise over time: weight/rep trends, estimated 1RM (Epley), plateau detection. |
-| `find-exercise` | Search exercises by name or muscle group. |
+| `find-exercise` | Search exercises by name or muscle group. Returns compact id + title pairs. |
+| `batch-find-exercises` | Look up multiple exercises at once. Loads library once, returns map of query → match. Use this when creating routines. |
 
 ## Architecture
 

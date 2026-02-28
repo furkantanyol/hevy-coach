@@ -98,12 +98,15 @@ export interface RoutineSetInput {
   reps?: number | null;
   distance_meters?: number | null;
   duration_seconds?: number | null;
+  custom_metric?: number | null;
   rpe?: number | null;
+  rep_range?: { start: number; end: number } | null;
 }
 
 export interface RoutineExerciseInput {
   exercise_template_id: string;
   superset_id?: number | null;
+  rest_seconds?: number | null;
   notes?: string;
   sets: RoutineSetInput[];
 }
@@ -284,11 +287,23 @@ export class HevyClient {
 
   private formatRoutineBody(routine: RoutineInput) {
     return {
-      ...routine,
-      exercises: routine.exercises.map((ex, i) => ({
-        ...ex,
-        index: i,
-        sets: ex.sets.map((s, j) => ({ ...s, index: j, type: s.type ?? "normal" })),
+      title: routine.title,
+      folder_id: routine.folder_id ?? null,
+      notes: routine.notes ?? null,
+      exercises: routine.exercises.map((ex) => ({
+        exercise_template_id: ex.exercise_template_id,
+        superset_id: ex.superset_id ?? null,
+        rest_seconds: ex.rest_seconds ?? null,
+        notes: ex.notes ?? null,
+        sets: ex.sets.map((s) => ({
+          type: s.type ?? "normal",
+          weight_kg: s.weight_kg ?? null,
+          reps: s.reps ?? null,
+          distance_meters: s.distance_meters ?? null,
+          duration_seconds: s.duration_seconds ?? null,
+          custom_metric: s.custom_metric ?? null,
+          ...(s.rep_range ? { rep_range: s.rep_range } : {}),
+        })),
       })),
     };
   }

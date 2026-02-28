@@ -9,7 +9,7 @@ import { registerUserTools } from "./tools/users.js";
 export function createServer(apiKey: string): McpServer {
   const server = new McpServer({
     name: "hevy-coach",
-    version: "0.1.0",
+    version: "0.1.2",
   });
 
   const client = new HevyClient(apiKey);
