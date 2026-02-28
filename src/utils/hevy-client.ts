@@ -84,6 +84,12 @@ export interface HevyRoutineFolder {
   updated_at: string;
 }
 
+export interface HevyUserInfo {
+  id: string;
+  name: string;
+  url: string;
+}
+
 // --- Input Types ---
 
 export interface RoutineSetInput {
@@ -107,6 +113,32 @@ export interface RoutineInput {
   folder_id?: number;
   notes?: string;
   exercises: RoutineExerciseInput[];
+}
+
+export interface WorkoutSetInput {
+  type?: string;
+  weight_kg?: number | null;
+  reps?: number | null;
+  distance_meters?: number | null;
+  duration_seconds?: number | null;
+  custom_metric?: number | null;
+  rpe?: number | null;
+}
+
+export interface WorkoutExerciseInput {
+  exercise_template_id: string;
+  superset_id?: number | null;
+  notes?: string;
+  sets: WorkoutSetInput[];
+}
+
+export interface WorkoutInput {
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  is_private?: boolean;
+  exercises: WorkoutExerciseInput[];
 }
 
 interface Paginated<T> {
@@ -147,9 +179,26 @@ export class HevyClient {
     return data.workout_count ?? 0;
   }
 
+  async createWorkout(workout: WorkoutInput): Promise<HevyWorkout> {
+    const { data } = await this.client.post("/workouts", { workout: this.formatWorkoutBody(workout) });
+    return data;
+  }
+
+  async updateWorkout(workoutId: string, workout: WorkoutInput): Promise<HevyWorkout> {
+    const { data } = await this.client.put(`/workouts/${workoutId}`, { workout: this.formatWorkoutBody(workout) });
+    return data;
+  }
+
   async getWorkoutEvents(page = 1, pageSize = 5, since = "1970-01-01T00:00:00Z"): Promise<{ events: HevyWorkoutEvent[]; page_count: number }> {
     const { data } = await this.client.get("/workouts/events", { params: { page, pageSize, since } });
     return { events: data.events ?? [], page_count: data.page_count ?? 1 };
+  }
+
+  // --- User ---
+
+  async getUserInfo(): Promise<HevyUserInfo> {
+    const { data } = await this.client.get("/user/info");
+    return data.data;
   }
 
   // --- Routines ---
@@ -209,12 +258,29 @@ export class HevyClient {
     return { routine_folders: data.routine_folders ?? [], page_count: data.page_count ?? 1 };
   }
 
+  async getRoutineFolder(folderId: number): Promise<HevyRoutineFolder | null> {
+    const { data } = await this.client.get(`/routine_folders/${folderId}`);
+    return data.routine_folder ?? null;
+  }
+
   async createRoutineFolder(title: string): Promise<HevyRoutineFolder> {
     const { data } = await this.client.post("/routine_folders", { routine_folder: { title } });
     return data.routine_folder;
   }
 
   // --- Private ---
+
+  private formatWorkoutBody(workout: WorkoutInput) {
+    return {
+      ...workout,
+      is_private: workout.is_private ?? false,
+      exercises: workout.exercises.map((ex, i) => ({
+        ...ex,
+        index: i,
+        sets: ex.sets.map((s, j) => ({ ...s, index: j, type: s.type ?? "normal" })),
+      })),
+    };
+  }
 
   private formatRoutineBody(routine: RoutineInput) {
     return {

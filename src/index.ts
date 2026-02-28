@@ -4,6 +4,7 @@ import { registerWorkoutTools } from "./tools/workouts.js";
 import { registerRoutineTools } from "./tools/routines.js";
 import { registerExerciseTools } from "./tools/exercises.js";
 import { registerCoachingTools } from "./tools/coaching.js";
+import { registerUserTools } from "./tools/users.js";
 
 export function createServer(apiKey: string): McpServer {
   const server = new McpServer({
@@ -13,6 +14,7 @@ export function createServer(apiKey: string): McpServer {
 
   const client = new HevyClient(apiKey);
 
+  registerUserTools(server, client);
   registerWorkoutTools(server, client);
   registerRoutineTools(server, client);
   registerExerciseTools(server, client);

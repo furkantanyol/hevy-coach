@@ -131,6 +131,25 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
   );
 
   server.registerTool(
+    "get-routine-folder",
+    {
+      description: "Get a single routine folder by ID.",
+      inputSchema: {
+        folderId: z.coerce.number().int().gte(1),
+      },
+    },
+    async ({ folderId }) => {
+      try {
+        const folder = await client.getRoutineFolder(folderId);
+        if (!folder) return textResponse("Routine folder not found.");
+        return jsonResponse(folder);
+      } catch (error) {
+        return errorResponse(getErrorMessage(error));
+      }
+    }
+  );
+
+  server.registerTool(
     "get-routine-folders",
     {
       description: "List all routine folders.",

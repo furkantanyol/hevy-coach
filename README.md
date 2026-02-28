@@ -22,18 +22,36 @@ AI personal training system that connects to [Hevy](https://hevyapp.com) via MCP
 - Node.js 18+
 - [Claude Desktop](https://claude.ai/download) (or any MCP-compatible client)
 
-### Install
+### Quick Start (npx)
+
+Add to your Claude Desktop MCP config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "hevy-coach": {
+      "command": "npx",
+      "args": ["-y", "hevy-coach"],
+      "env": {
+        "HEVY_API_KEY": "your-hevy-api-key"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The tools appear in the MCP tools list.
+
+### Install from Source
 
 ```bash
-git clone https://github.com/AugmentedMind/hevy-coach.git
+git clone https://github.com/furkantanyol/hevy-coach.git
 cd hevy-coach
 npm install
 npm run build
 ```
 
-### Configure Claude Desktop
-
-Add to your MCP config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Then use the local path in your MCP config:
 
 ```json
 {
@@ -48,8 +66,6 @@ Add to your MCP config (`~/Library/Application Support/Claude/claude_desktop_con
   }
 }
 ```
-
-Restart Claude Desktop. The tools appear in the MCP tools list.
 
 ### Add the Coaching Brain
 
@@ -80,19 +96,35 @@ Create two Claude Desktop scheduled tasks:
 
 ## Tools
 
-### Data Tools
+### User Tools
+| Tool | Description |
+|------|-------------|
+| `get-user-info` | Get authenticated user's profile (ID, name, Hevy URL) |
+
+### Workout Tools
 | Tool | Description |
 |------|-------------|
 | `get-workouts` | List recent workouts (paginated) |
 | `get-workout` | Get specific workout by ID |
+| `create-workout` | Create a new workout with exercises and sets |
+| `update-workout` | Update an existing workout by ID |
 | `get-workout-count` | Total logged workouts |
 | `get-workout-events` | Track changes since a date |
+
+### Routine Tools
+| Tool | Description |
+|------|-------------|
 | `get-routines` | List saved routines |
 | `get-routine` | Get routine details |
 | `create-routine` | Push routine to Hevy |
 | `update-routine` | Modify existing routine |
+| `get-routine-folder` | Get a single routine folder by ID |
 | `get-routine-folders` | List routine folders |
 | `create-routine-folder` | Create folder |
+
+### Exercise Tools
+| Tool | Description |
+|------|-------------|
 | `get-exercise-templates` | Browse exercise library |
 | `get-exercise-template` | Get exercise details |
 | `get-exercise-history` | Past performance data |
@@ -114,6 +146,7 @@ hevy-coach/
 │   ├── index.ts           # Server factory
 │   ├── cli.ts             # CLI entry point (stdio transport)
 │   ├── tools/
+│   │   ├── users.ts       # User profile
 │   │   ├── workouts.ts    # Workout CRUD
 │   │   ├── routines.ts    # Routine CRUD
 │   │   ├── exercises.ts   # Exercise templates

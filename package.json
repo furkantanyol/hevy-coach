@@ -1,6 +1,6 @@
 {
   "name": "hevy-coach",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI Personal Training MCP Server — turns Claude into your strength, conditioning, mobility, and longevity coach via Hevy",
   "type": "module",
   "main": "dist/index.js",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AugmentedMind/hevy-coach.git"
+    "url": "git+https://github.com/furkantanyol/hevy-coach.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
