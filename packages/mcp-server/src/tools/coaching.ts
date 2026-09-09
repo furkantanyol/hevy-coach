@@ -152,6 +152,11 @@ type Match = { id: string; title: string };
 // ponytail: one process serves one API key, so a module-level cache is enough.
 let libraryCache: { expires: number; templates: ExerciseTemplate[] } | undefined;
 
+/** Call after creating a custom exercise so lookups see it immediately. */
+export function invalidateLibrary(): void {
+  libraryCache = undefined;
+}
+
 async function loadLibrary(client: HevyClient): Promise<ExerciseTemplate[]> {
   if (libraryCache && libraryCache.expires > Date.now()) return libraryCache.templates;
   const templates = await client.exerciseTemplates.listAll();
@@ -159,7 +164,12 @@ async function loadLibrary(client: HevyClient): Promise<ExerciseTemplate[]> {
   return templates;
 }
 
-const normalise = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
+// Lower-case, and treat snake_case muscle groups ("upper_back") like their spoken form.
+const normalise = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[\s_]+/g, " ")
+    .trim();
 const byTitleLength = (a: Match, b: Match) => a.title.length - b.title.length;
 
 /** Exact normalised title match first; otherwise the shortest title containing the query. */
@@ -177,8 +187,8 @@ function searchExercises(library: ExerciseTemplate[], query: string): Match[] {
     .filter(
       (t) =>
         normalise(t.title).includes(q) ||
-        t.primary_muscle_group.includes(q) ||
-        t.secondary_muscle_groups.some((m) => m.includes(q)),
+        normalise(t.primary_muscle_group).includes(q) ||
+        t.secondary_muscle_groups.some((m) => normalise(m).includes(q)),
     )
     .sort(byTitleLength)
     .map((t) => ({ id: t.id, title: t.title }));
@@ -204,14 +214,15 @@ interface PlannedExercise {
   targetRpe: number | null;
 }
 
-function recommend(
+/** "All reps hit" means every working set reached the target, so the weakest set decides. */
+export function recommend(
   plan: PlannedExercise | undefined,
-  repsPerSet: number,
+  minReps: number,
   sets: number,
   avgRpe: number | null,
 ) {
   if (!plan) return "maintain";
-  const hitReps = repsPerSet >= plan.targetReps;
+  const hitReps = minReps >= plan.targetReps;
   const hitSets = sets >= plan.targetSets;
   if (hitReps && hitSets && avgRpe !== null && avgRpe <= RPE_INCREASE) return "increase_weight";
   if (hitReps && hitSets && avgRpe !== null && avgRpe <= RPE_HOLD) return "maintain_then_increase";
@@ -232,6 +243,7 @@ function analyzeWorkoutPerformance(workout: Workout, planned: PlannedExercise[])
       ? rated.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / rated.length
       : null;
     const repsPerSet = workingSets.length ? totalReps / workingSets.length : 0;
+    const minReps = workingSets.length ? Math.min(...workingSets.map((s) => s.reps ?? 0)) : 0;
 
     return {
       exercise: actual.title,
@@ -246,11 +258,12 @@ function analyzeWorkoutPerformance(workout: Workout, planned: PlannedExercise[])
       actual: {
         setsCompleted: workingSets.length,
         avgRepsPerSet: round1(repsPerSet),
+        minReps,
         totalReps,
         maxWeightKg: Math.max(0, ...workingSets.map((s) => s.weight_kg ?? 0)),
         avgRpe: avgRpe === null ? null : round1(avgRpe),
       },
-      recommendation: recommend(plan, repsPerSet, workingSets.length, avgRpe),
+      recommendation: recommend(plan, minReps, workingSets.length, avgRpe),
       notes: actual.notes,
     };
   });
@@ -287,9 +300,11 @@ function generateTrainingSummary(workouts: Workout[]) {
 
   const sessionsByExercise = new Map<string, { sessions: number; totalSets: number }>();
   for (const workout of workouts) {
+    const seenInWorkout = new Set<string>();
     for (const exercise of workout.exercises) {
       const entry = sessionsByExercise.get(exercise.title) ?? { sessions: 0, totalSets: 0 };
-      entry.sessions++;
+      if (!seenInWorkout.has(exercise.title)) entry.sessions++;
+      seenInWorkout.add(exercise.title);
       entry.totalSets += exercise.sets.filter(isWorking).length;
       sessionsByExercise.set(exercise.title, entry);
     }
@@ -315,7 +330,38 @@ function generateTrainingSummary(workouts: Workout[]) {
   };
 }
 
-/** History is flat (one row per set). Group by workout, oldest first, keep the last `limit` sessions. */
+type SessionSets = [ExerciseHistoryEntry, ...ExerciseHistoryEntry[]];
+
+function summariseSession(workingSets: SessionSets) {
+  const first = workingSets[0];
+  const bestSet = workingSets.reduce(
+    (best, s) => {
+      const e1rm = epley1RM(s.weight_kg ?? 0, s.reps ?? 0);
+      return e1rm > best.e1rm ? { weight: s.weight_kg ?? 0, reps: s.reps ?? 0, e1rm } : best;
+    },
+    {
+      weight: first.weight_kg ?? 0,
+      reps: first.reps ?? 0,
+      e1rm: epley1RM(first.weight_kg ?? 0, first.reps ?? 0),
+    },
+  );
+  return {
+    date: first.workout_start_time.slice(0, 10),
+    workingSets: workingSets.length,
+    maxWeightKg: Math.max(...workingSets.map((s) => s.weight_kg ?? 0)),
+    maxReps: Math.max(...workingSets.map((s) => s.reps ?? 0)),
+    totalVolume: Math.round(
+      workingSets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0),
+    ),
+    estimated1RM: round1(bestSet.e1rm),
+    bestSet: { weightKg: bestSet.weight, reps: bestSet.reps },
+  };
+}
+
+/**
+ * History is flat (one row per set). Groups by workout, oldest first, and reports the last `limit`
+ * sessions. Weighted exercises trend on estimated 1RM; bodyweight exercises (no load) on max reps.
+ */
 export function analyzeExerciseProgression(
   history: ExerciseHistoryEntry[],
   limit = Number.POSITIVE_INFINITY,
@@ -323,43 +369,27 @@ export function analyzeExerciseProgression(
   const byWorkout = new Map<string, ExerciseHistoryEntry[]>();
   for (const entry of history) {
     if (entry.set_type === "warmup") continue;
-    byWorkout.set(entry.workout_id, [...(byWorkout.get(entry.workout_id) ?? []), entry]);
+    const sets = byWorkout.get(entry.workout_id) ?? [];
+    sets.push(entry);
+    byWorkout.set(entry.workout_id, sets);
   }
 
-  const sessions = [...byWorkout.values()]
-    .filter((sets): sets is [ExerciseHistoryEntry, ...ExerciseHistoryEntry[]] => sets.length > 0)
+  const allSessions = [...byWorkout.values()]
+    .filter((sets): sets is SessionSets => sets.length > 0)
     .sort((a, b) => a[0].workout_start_time.localeCompare(b[0].workout_start_time))
-    .slice(-limit)
-    .map((workingSets) => {
-      const bestSet = workingSets.reduce(
-        (best, s) => {
-          const e1rm = epley1RM(s.weight_kg ?? 0, s.reps ?? 0);
-          return e1rm > best.e1rm ? { weight: s.weight_kg ?? 0, reps: s.reps ?? 0, e1rm } : best;
-        },
-        { weight: 0, reps: 0, e1rm: 0 },
-      );
-      return {
-        date: workingSets[0].workout_start_time.slice(0, 10),
-        workingSets: workingSets.length,
-        maxWeightKg: Math.max(...workingSets.map((s) => s.weight_kg ?? 0)),
-        maxReps: Math.max(...workingSets.map((s) => s.reps ?? 0)),
-        totalVolume: Math.round(
-          workingSets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0),
-        ),
-        estimated1RM: round1(bestSet.e1rm),
-        bestSet: { weightKg: bestSet.weight, reps: bestSet.reps },
-      };
-    });
+    .map(summariseSession);
+  const sessions = allSessions.slice(-limit);
 
-  const latest1RM = sessions[sessions.length - 1]?.estimated1RM ?? 0;
-  const earliest1RM = sessions[0]?.estimated1RM ?? 0;
+  const trendMetric = allSessions.some((s) => s.estimated1RM > 0) ? "estimated1RM" : "maxReps";
+  const latest = sessions[sessions.length - 1]?.[trendMetric] ?? 0;
+  const earliest = sessions[0]?.[trendMetric] ?? 0;
 
   return {
     sessionCount: sessions.length,
     sessions,
-    allTimeBestE1RM: Math.max(0, ...sessions.map((s) => s.estimated1RM)),
-    progressionKg: round1(latest1RM - earliest1RM),
-    trend:
-      latest1RM > earliest1RM ? "improving" : latest1RM === earliest1RM ? "plateau" : "declining",
+    allTimeBestE1RM: Math.max(0, ...allSessions.map((s) => s.estimated1RM)),
+    trendMetric,
+    progression: round1(latest - earliest),
+    trend: latest > earliest ? "improving" : latest === earliest ? "plateau" : "declining",
   };
 }

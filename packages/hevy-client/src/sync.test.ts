@@ -60,6 +60,14 @@ describe("mergeEvents", () => {
 });
 
 describe("workouts.changes", () => {
+  it("should default since to the epoch for a full sync", async () => {
+    const fetchFn = mockFetch({ body: { page: 1, page_count: 1, events: [] } });
+    const client = createHevyClient({ apiKey: "k", fetch: fetchFn });
+    const changes = await client.workouts.changes();
+    expect(calls(fetchFn)[0]).toContain("since=1970-01-01T00%3A00%3A00Z");
+    expect(changes).toEqual({ upserts: [], deletes: [], cursor: undefined });
+  });
+
   it("should page through events with since and merge across pages", async () => {
     const fetchFn = mockFetch(
       { body: { page: 1, page_count: 2, events: [updated("a", "2026-09-08T10:00:00Z")] } },

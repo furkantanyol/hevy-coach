@@ -68,6 +68,14 @@ describe("request", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
+  it("should retry a PUT on 502 because PUT is idempotent", async () => {
+    noWait();
+    const fetchFn = mockFetch({ status: 502, body: "Bad Gateway" }, { status: 200 });
+    const client = createHevyClient({ ...fast, fetch: fetchFn });
+    await client.bodyMeasurements.update("2026-09-09", { weight_kg: 80 });
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
   it("should retry a POST on 429 honouring retry-after", async () => {
     const timer = noWait();
     const fetchFn = mockFetch(

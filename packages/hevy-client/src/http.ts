@@ -57,6 +57,8 @@ export class Http {
     if (cached && cached.expires > Date.now()) return cached.value as T;
 
     const value = await this.send<T>(opts.method, url, opts.body, opts.signal);
+    // Clear again after the write lands so a GET that raced it cannot repopulate stale data.
+    if (opts.method !== "GET") this.cache.clear();
     if (this.cacheTtlMs > 0 && opts.method === "GET") {
       this.cache.set(url, { expires: Date.now() + this.cacheTtlMs, value });
     }
@@ -114,7 +116,9 @@ function backoff(attempt: number): number {
 
 function retryAfterMs(response: Response): number | undefined {
   const seconds = Number(response.headers.get("retry-after"));
-  return Number.isFinite(seconds) && seconds > 0 ? seconds * MS_PER_SECOND : undefined;
+  return Number.isFinite(seconds) && seconds > 0
+    ? Math.min(seconds * MS_PER_SECOND, MAX_DELAY_MS)
+    : undefined;
 }
 
 async function parseBody(response: Response): Promise<unknown> {

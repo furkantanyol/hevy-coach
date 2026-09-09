@@ -7,6 +7,7 @@ import type {
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { jsonResponse, safe, textResponse } from "../utils/response.js";
+import { invalidateLibrary } from "./coaching.js";
 import { exerciseTemplateId, templatePageSchema } from "./schemas.js";
 
 const EXERCISE_TYPES = [
@@ -103,7 +104,7 @@ export function registerExerciseTools(server: McpServer, client: HevyClient) {
     "create-exercise-template",
     {
       description:
-        "Create a custom exercise in the user's library. Returns its numeric id. Check batch-find-exercises first to avoid duplicates of built-in exercises.",
+        "Create a custom exercise in the user's library. Check batch-find-exercises first to avoid duplicating a built-in exercise. The response id is NOT an exercise_template_id: after creating, call batch-find-exercises with the title to get the id to use in routines and workouts.",
       inputSchema: {
         title: z.string().min(1),
         exercise_type: z.enum(EXERCISE_TYPES).describe("How the exercise is measured"),
@@ -115,6 +116,10 @@ export function registerExerciseTools(server: McpServer, client: HevyClient) {
         equipment_category: z.enum(EQUIPMENT),
       },
     },
-    safe(async (exercise) => jsonResponse(await client.exerciseTemplates.create(exercise))),
+    safe(async (exercise) => {
+      const created = await client.exerciseTemplates.create(exercise);
+      invalidateLibrary();
+      return jsonResponse(created);
+    }),
   );
 }

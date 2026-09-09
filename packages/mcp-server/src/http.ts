@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { NextFunction, Request, Response } from "express";
 import { createServer } from "./index.js";
+import { isAuthorized, MIN_TOKEN_LENGTH } from "./utils/auth.js";
 
 // All logging goes to stderr so stdout stays free for tooling.
 const log = (message: string) => console.error(`[hevy-coach] ${message}`);
@@ -18,24 +19,33 @@ const fail = (message: string): never => {
 
 const DEFAULT_PORT = 3000;
 const LOCALHOST = "127.0.0.1";
+const LOCALHOST_ALIASES = new Set([LOCALHOST, "localhost", "::1"]);
 const csv = (value: string | undefined) =>
   (value ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-const apiKey = process.env.HEVY_API_KEY ?? fail("HEVY_API_KEY environment variable is required.");
+const apiKey = process.env.HEVY_API_KEY || fail("HEVY_API_KEY environment variable is required.");
 const authToken =
-  process.env.MCP_AUTH_TOKEN ??
+  process.env.MCP_AUTH_TOKEN ||
   fail(
     "MCP_AUTH_TOKEN is required: this server proxies your Hevy account. Generate a long random secret.",
   );
+if (authToken.length < MIN_TOKEN_LENGTH) {
+  fail(
+    `MCP_AUTH_TOKEN must be at least ${MIN_TOKEN_LENGTH} characters, e.g. openssl rand -hex 32.`,
+  );
+}
 const port = Number(process.env.PORT ?? DEFAULT_PORT);
+if (!Number.isInteger(port) || port <= 0)
+  fail(`PORT must be a positive integer, got "${process.env.PORT}".`);
 const host = process.env.HOST ?? LOCALHOST;
 const allowedHosts = csv(process.env.MCP_ALLOWED_HOSTS);
 const allowedOrigins = csv(process.env.MCP_ALLOWED_ORIGINS);
 
-if (host !== LOCALHOST && allowedHosts.length === 0) {
+const isLocal = LOCALHOST_ALIASES.has(host);
+if (!isLocal && allowedHosts.length === 0) {
   fail(
     `HOST=${host} exposes the server beyond localhost; set MCP_ALLOWED_HOSTS to your public hostname(s).`,
   );
@@ -44,7 +54,7 @@ if (host !== LOCALHOST && allowedHosts.length === 0) {
 // --- Express app -----------------------------------------------------------
 
 // DNS-rebinding protection: on localhost the SDK validates Host/Origin; elsewhere it uses allowedHosts.
-const app = createMcpExpressApp(host === LOCALHOST ? { host } : { host, allowedHosts });
+const app = createMcpExpressApp(isLocal ? { host } : { host, allowedHosts });
 
 // CORS only for explicitly listed browser origins. Server-to-server MCP clients need none.
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -54,6 +64,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, mcp-session-id");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Expose-Headers", "mcp-session-id");
   }
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
@@ -63,10 +74,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 function bearerAuth(req: Request, res: Response, next: NextFunction): void {
-  const header = req.headers.authorization ?? "";
-  const presented = Buffer.from(header.replace(/^Bearer\s+/i, ""));
-  const expected = Buffer.from(authToken);
-  if (presented.length === expected.length && timingSafeEqual(presented, expected)) {
+  if (isAuthorized(req.headers.authorization, authToken)) {
     next();
     return;
   }
@@ -141,12 +149,16 @@ for (const method of ["get", "delete"] as const) {
 
 // --- Start / stop ----------------------------------------------------------
 
-app.listen(port, host, () => {
-  log(`listening on http://${host}:${port}/mcp (bearer auth on)`);
-});
+app
+  .listen(port, host, () => {
+    log(`listening on http://${host}:${port}/mcp (bearer auth on)`);
+  })
+  .on("error", (error: Error) => fail(`could not listen on ${host}:${port}: ${error.message}`));
 
-process.on("SIGINT", async () => {
-  log("shutting down");
-  await Promise.all([...transports.values()].map((t) => t.close().catch(() => undefined)));
-  process.exit(0);
-});
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, async () => {
+    log("shutting down");
+    await Promise.all([...transports.values()].map((t) => t.close().catch(() => undefined)));
+    process.exit(0);
+  });
+}

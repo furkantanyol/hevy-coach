@@ -16,6 +16,10 @@
 - `get-workout` and `analyze-workout` returned "not found" for valid workouts because the response was assumed to be wrapped.
 - `batch-find-exercises` and `find-exercise` prefer an exact title match and rank partial matches by shortest title, so "Squat" no longer resolves to an arbitrary variant.
 - RPE inputs validated against Hevy's allowed values.
+- `get-exercise-progression` trends bodyweight exercises on max reps (was always "plateau") and reports a true all-time best; `progressionKg` is now `progression` with a `trendMetric` field.
+- `analyze-workout` judges "reps hit" on the weakest working set, not the mean; `get-training-summary` counts sessions per workout, not per exercise entry.
+- `find-exercise` matches muscle groups written with spaces ("upper back").
+- `create-exercise-template` invalidates the exercise cache so the new exercise is immediately findable.
 
 ### Changed
 
