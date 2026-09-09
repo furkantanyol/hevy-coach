@@ -51,3 +51,8 @@ export interface WebhookSubscriptionInput {
 // --- Pagination ---
 
 export type PageParams = { page?: number; pageSize?: number };
+
+/** RPE accepted by Hevy: 6 to 10 in half steps. */
+export type Rpe = NonNullable<
+  NonNullable<NonNullable<WorkoutInput["exercises"][number]["sets"]>[number]["rpe"]>
+>;

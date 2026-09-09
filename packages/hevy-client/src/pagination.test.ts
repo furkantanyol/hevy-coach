@@ -10,7 +10,9 @@ describe("fetchAll", () => {
       { page: 2, page_count: 3, items: ["c"] },
       { page: 3, page_count: 3, items: ["d"] },
     ];
-    const result = await fetchAll(async (page) => pages[page - 1]!);
+    const result = await fetchAll(
+      async (page) => pages[page - 1] ?? { page, page_count: 0, items: [] },
+    );
     expect(result).toEqual(["a", "b", "c", "d"]);
   });
 

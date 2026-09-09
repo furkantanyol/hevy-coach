@@ -3,6 +3,9 @@
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": { "includes": ["**", "!**/dist", "!**/src/generated", "!docs/api/*.json"] },
   "formatter": { "indentStyle": "space", "lineWidth": 100 },
-  "linter": { "enabled": true, "rules": { "recommended": true, "suspicious": { "noExplicitAny": "error" } } },
+  "linter": {
+    "enabled": true,
+    "rules": { "preset": "recommended", "suspicious": { "noExplicitAny": "error" } }
+  },
   "assist": { "actions": { "source": { "organizeImports": "on" } } }
 }
