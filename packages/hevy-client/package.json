@@ -1,0 +1,56 @@
+{
+  "name": "@furkantanyol/hevy-client",
+  "version": "1.0.0",
+  "description": "Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Works in Node and React Native.",
+  "license": "MIT",
+  "author": "Furkan Tanyol",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "generate:types": "node scripts/generate-types.mjs"
+  },
+  "keywords": [
+    "hevy",
+    "api",
+    "client",
+    "fitness",
+    "workout",
+    "react-native",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/furkantanyol/hevy-coach.git",
+    "directory": "packages/hevy-client"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

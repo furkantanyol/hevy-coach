@@ -1,60 +1,28 @@
 {
-  "name": "hevy-coach",
-  "version": "0.2.0",
-  "description": "AI Personal Training MCP Server — your strength, conditioning, mobility, and longevity coach via Hevy. Works with Claude, ChatGPT, and Gemini.",
+  "name": "hevy-coach-monorepo",
+  "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "hevy-coach": "dist/cli.js",
-    "hevy-coach-http": "dist/http.js"
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=22.18.0"
   },
-  "files": [
-    "dist",
-    "docs",
-    "README.md",
-    "CHATGPT.md",
-    "GEMINI.md"
-  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx watch --env-file .env src/cli.ts",
-    "dev:http": "tsx watch --env-file .env src/http.ts",
-    "start": "node --env-file .env dist/cli.js",
-    "start:http": "node --env-file .env dist/http.js",
-    "typecheck": "tsc --noEmit",
-    "lint": "biome check src/",
-    "test": "vitest --run"
-  },
-  "keywords": [
-    "mcp",
-    "hevy",
-    "fitness",
-    "personal-trainer",
-    "ai-coaching",
-    "workout",
-    "strength",
-    "conditioning",
-    "mobility"
-  ],
-  "author": "Furkan Tanyol",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/furkantanyol/hevy-coach.git"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.0",
-    "axios": "^1.13.5",
-    "zod": "^3.23.0"
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "test": "vitest --run",
+    "generate:types": "pnpm --filter @furkantanyol/hevy-client generate:types",
+    "validate": "pnpm format:check && pnpm lint && pnpm build && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^22.19.13",
-    "tsx": "^4.21.0",
-    "typescript": "^5.7.0",
-    "vitest": "^2.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "@biomejs/biome": "^2.5.12",
+    "@types/node": "^24.13.3",
+    "openapi-typescript": "^7.13.0",
+    "tsdown": "^0.23.0",
+    "typescript": "5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   }
 }

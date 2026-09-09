@@ -1,0 +1,59 @@
+{
+  "name": "hevy-coach",
+  "version": "1.0.0",
+  "description": "AI personal-training MCP server for Hevy: workout analysis, progression tracking, routine programming. Works with Claude, ChatGPT and Gemini.",
+  "license": "MIT",
+  "author": "Furkan Tanyol",
+  "type": "module",
+  "bin": {
+    "hevy-coach": "./dist/cli.js",
+    "hevy-coach-http": "./dist/http.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "dev": "node --env-file=../../.env --experimental-strip-types src/cli.ts",
+    "dev:http": "node --env-file=../../.env --experimental-strip-types src/http.ts"
+  },
+  "keywords": [
+    "mcp",
+    "hevy",
+    "fitness",
+    "personal-trainer",
+    "ai-coaching",
+    "workout",
+    "strength",
+    "conditioning"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/furkantanyol/hevy-coach.git",
+    "directory": "packages/mcp-server"
+  },
+  "dependencies": {
+    "@furkantanyol/hevy-client": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.2.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}
