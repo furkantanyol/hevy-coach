@@ -7,7 +7,7 @@
 - Node 22.18+ required.
 - `hevy-coach-http` requires `MCP_AUTH_TOKEN`, binds to `127.0.0.1` by default, and needs `MCP_ALLOWED_HOSTS` to bind elsewhere. CORS is off unless `MCP_ALLOWED_ORIGINS` lists browser origins.
 - `create-body-measurement` and `update-body-measurement` replaced by `log-body-measurement` (create or overwrite).
-- `create-routine` and `update-routine` take `folder_id` (snake_case) and `update-routine` can now move a routine between folders.
+- `create-routine` and `update-routine` take `folder_id` (snake_case). `update-routine` moves a routine when `folder_id` is given (null = "My Routines") and keeps the folder when it is omitted. `rpe` is no longer accepted on routine sets (Hevy rejects it).
 - Error results include Hevy's HTTP status, error code and message instead of a generic axios message.
 
 ### Fixed

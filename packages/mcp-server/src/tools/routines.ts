@@ -56,7 +56,7 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
     "update-routine",
     {
       description:
-        "Replace a routine by id: title, notes, folder and every exercise and set are overwritten. Fetch it with get-routine first if you only want to change part of it.",
+        "Replace a routine by id: title, notes and every exercise and set are overwritten. Omit folder_id to keep the current folder, pass null to move it to 'My Routines'. Fetch it with get-routine first if you only want to change part of it.",
       inputSchema: {
         routineId: z.string().min(1),
         title: z.string().min(1),
@@ -65,9 +65,13 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
         exercises: z.array(routineExerciseSchema).min(1),
       },
     },
+    // Omitting folder_id keeps the current folder; null moves to "My Routines" (probes §9).
     safe(async ({ routineId, folder_id, ...routine }) =>
       jsonResponse(
-        await client.routines.update(routineId, { ...routine, folder_id: folder_id ?? null }),
+        await client.routines.update(routineId, {
+          ...routine,
+          ...(folder_id === undefined ? {} : { folder_id }),
+        }),
       ),
     ),
   );
