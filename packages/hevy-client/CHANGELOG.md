@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-09-09)
 
 First release, extracted from `hevy-coach` 0.2.0.
 
