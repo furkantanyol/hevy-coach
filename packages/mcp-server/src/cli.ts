@@ -7,14 +7,13 @@ const apiKey = process.env.HEVY_API_KEY;
 
 if (!apiKey) {
   console.error("HEVY_API_KEY environment variable is required.");
-  console.error("Get your API key from Hevy Settings → API (requires Pro subscription).");
+  console.error("Get your API key from Hevy Settings → API.");
   process.exit(1);
 }
 
-const server = createServer(apiKey);
-const transport = new StdioServerTransport();
+const server = createServer({ apiKey });
 
-server.connect(transport).catch((err) => {
-  console.error("Failed to start hevy-coach:", err);
+server.connect(new StdioServerTransport()).catch((error: unknown) => {
+  console.error("Failed to start hevy-coach:", error);
   process.exit(1);
 });

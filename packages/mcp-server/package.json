@@ -6,17 +6,17 @@
   "author": "Furkan Tanyol",
   "type": "module",
   "bin": {
-    "hevy-coach": "./dist/cli.js",
-    "hevy-coach-http": "./dist/http.js"
+    "hevy-coach": "./dist/cli.mjs",
+    "hevy-coach-http": "./dist/http.mjs"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
     },
     "./package.json": "./package.json"
   },
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist",
     "README.md",

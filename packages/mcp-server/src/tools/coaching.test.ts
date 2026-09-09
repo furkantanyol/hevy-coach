@@ -1,8 +1,8 @@
+import type { ExerciseHistoryEntry } from "@furkantanyol/hevy-client";
 import { describe, expect, it } from "vitest";
-import type { HevyExerciseHistoryEntry } from "../utils/hevy-client.js";
 import { analyzeExerciseProgression, findBestMatch } from "./coaching.js";
 
-const row = (over: Partial<HevyExerciseHistoryEntry>): HevyExerciseHistoryEntry => ({
+const row = (over: Partial<ExerciseHistoryEntry>): ExerciseHistoryEntry => ({
   workout_id: "w1",
   workout_title: "Lower",
   workout_start_time: "2026-09-01T10:00:00+00:00",
@@ -36,7 +36,12 @@ describe("analyzeExerciseProgression", () => {
   it("should report improving trend with Epley e1RM delta", () => {
     const history = [
       row({ workout_id: "w1", weight_kg: 100, reps: 5 }),
-      row({ workout_id: "w2", workout_start_time: "2026-09-08T10:00:00+00:00", weight_kg: 100, reps: 8 }),
+      row({
+        workout_id: "w2",
+        workout_start_time: "2026-09-08T10:00:00+00:00",
+        weight_kg: 100,
+        reps: 8,
+      }),
     ];
     const result = analyzeExerciseProgression(history);
     expect(result.trend).toBe("improving");

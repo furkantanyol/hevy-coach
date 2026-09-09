@@ -1,205 +1,152 @@
 #!/usr/bin/env node
 
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { createServer } from "./index.js";
+
+// All logging goes to stderr so stdout stays free for tooling.
+const log = (message: string) => console.error(`[hevy-coach] ${message}`);
+const fail = (message: string): never => {
+  log(message);
+  process.exit(1);
+};
 
 // --- Environment -----------------------------------------------------------
 
-const apiKey = process.env.HEVY_API_KEY;
-if (!apiKey) {
-  console.error("HEVY_API_KEY environment variable is required.");
-  console.error(
-    "Get your API key from Hevy Settings → API (requires Pro subscription).",
-  );
-  process.exit(1);
-}
+const DEFAULT_PORT = 3000;
+const LOCALHOST = "127.0.0.1";
+const csv = (value: string | undefined) =>
+  (value ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-const port = Number(process.env.PORT ?? 3000);
-const authToken = process.env.MCP_AUTH_TOKEN;
+const apiKey = process.env.HEVY_API_KEY ?? fail("HEVY_API_KEY environment variable is required.");
+const authToken =
+  process.env.MCP_AUTH_TOKEN ??
+  fail(
+    "MCP_AUTH_TOKEN is required: this server proxies your Hevy account. Generate a long random secret.",
+  );
+const port = Number(process.env.PORT ?? DEFAULT_PORT);
+const host = process.env.HOST ?? LOCALHOST;
+const allowedHosts = csv(process.env.MCP_ALLOWED_HOSTS);
+const allowedOrigins = csv(process.env.MCP_ALLOWED_ORIGINS);
+
+if (host !== LOCALHOST && allowedHosts.length === 0) {
+  fail(
+    `HOST=${host} exposes the server beyond localhost; set MCP_ALLOWED_HOSTS to your public hostname(s).`,
+  );
+}
 
 // --- Express app -----------------------------------------------------------
 
-const app = createMcpExpressApp({ host: "0.0.0.0" });
+// DNS-rebinding protection: on localhost the SDK validates Host/Origin; elsewhere it uses allowedHosts.
+const app = createMcpExpressApp(host === LOCALHOST ? { host } : { host, allowedHosts });
 
-// CORS — allow any origin so ChatGPT / Gemini can reach us
-app.use((_req: Request, res: Response, next: NextFunction) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, mcp-session-id",
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, DELETE, OPTIONS",
-  );
-  if (_req.method === "OPTIONS") {
+// CORS only for explicitly listed browser origins. Server-to-server MCP clients need none.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, mcp-session-id");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  }
+  if (req.method === "OPTIONS") {
     res.sendStatus(204);
     return;
   }
   next();
 });
 
-// Bearer auth middleware — only applied when MCP_AUTH_TOKEN is set
 function bearerAuth(req: Request, res: Response, next: NextFunction): void {
-  if (!authToken) {
-    next();
-    return;
-  }
   const header = req.headers.authorization ?? "";
-  if (header === `Bearer ${authToken}`) {
+  const presented = Buffer.from(header.replace(/^Bearer\s+/i, ""));
+  const expected = Buffer.from(authToken);
+  if (presented.length === expected.length && timingSafeEqual(presented, expected)) {
     next();
     return;
   }
   res.status(401).json({ error: "Unauthorized" });
 }
 
-// --- Session store ---------------------------------------------------------
+// --- Sessions --------------------------------------------------------------
 
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
-// --- Health check ----------------------------------------------------------
+const jsonRpcError = (res: Response, status: number, message: string) =>
+  res.status(status).json({ jsonrpc: "2.0", error: { code: -32000, message }, id: null });
+
+function existingTransport(req: Request, res: Response): StreamableHTTPServerTransport | undefined {
+  const sessionId = req.headers["mcp-session-id"];
+  const transport = typeof sessionId === "string" ? transports.get(sessionId) : undefined;
+  if (!transport) jsonRpcError(res, 400, "Missing or unknown mcp-session-id");
+  return transport;
+}
+
+async function startSession(req: Request, res: Response): Promise<void> {
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => randomUUID(),
+    onsessioninitialized: (sid) => {
+      transports.set(sid, transport);
+      log(`session started ${sid}`);
+    },
+  });
+  transport.onclose = () => {
+    if (transport.sessionId) {
+      transports.delete(transport.sessionId);
+      log(`session closed ${transport.sessionId}`);
+    }
+  };
+  await createServer({ apiKey }).connect(transport);
+  await transport.handleRequest(req, res, req.body);
+}
+
+// --- Routes ----------------------------------------------------------------
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", server: "hevy-coach" });
 });
 
-// --- MCP POST --------------------------------------------------------------
-
 app.post("/mcp", bearerAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-
   try {
-    if (sessionId) {
-      const transport = transports.get(sessionId);
-      if (!transport) {
-        res.status(400).json({
-          jsonrpc: "2.0",
-          error: { code: -32000, message: "Unknown session ID" },
-          id: null,
-        });
-        return;
-      }
-      await transport.handleRequest(req, res, req.body);
-      return;
+    if (req.headers["mcp-session-id"]) {
+      await existingTransport(req, res)?.handleRequest(req, res, req.body);
+    } else if (isInitializeRequest(req.body)) {
+      await startSession(req, res);
+    } else {
+      jsonRpcError(res, 400, "Bad Request: missing session ID or not an initialize request");
     }
-
-    if (!isInitializeRequest(req.body)) {
-      res.status(400).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: missing session ID or not an initialize request",
-        },
-        id: null,
-      });
-      return;
-    }
-
-    // New session — create transport, connect server, then handle request.
-    // We use onsessioninitialized to store the transport in the map as soon
-    // as the session ID is assigned, before any concurrent requests arrive.
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (sid) => {
-        transports.set(sid, transport);
-        console.log(`[hevy-coach] Session initialized: ${sid}`);
-      },
-    });
-
-    transport.onclose = () => {
-      const sid = transport.sessionId;
-      if (sid) {
-        transports.delete(sid);
-        console.log(`[hevy-coach] Session closed: ${sid}`);
-      }
-    };
-
-    const server = createServer(apiKey);
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-  } catch (err) {
-    console.error("[hevy-coach] Error handling POST /mcp:", err);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        error: { code: -32603, message: "Internal server error" },
-        id: null,
-      });
-    }
+  } catch (error) {
+    log(`POST /mcp failed: ${String(error)}`);
+    if (!res.headersSent) jsonRpcError(res, 500, "Internal server error");
   }
 });
 
-// --- MCP GET (SSE stream) --------------------------------------------------
-
-app.get("/mcp", bearerAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId) {
-    res.status(400).send("Missing mcp-session-id header");
-    return;
-  }
-  const transport = transports.get(sessionId);
-  if (!transport) {
-    res.status(400).send("Unknown session ID");
-    return;
-  }
-  try {
-    await transport.handleRequest(req, res);
-  } catch (err) {
-    console.error("[hevy-coach] Error handling GET /mcp:", err);
-    if (!res.headersSent) res.status(500).send("Internal server error");
-  }
-});
-
-// --- MCP DELETE (session termination) -------------------------------------
-
-app.delete("/mcp", bearerAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId) {
-    res.status(400).send("Missing mcp-session-id header");
-    return;
-  }
-  const transport = transports.get(sessionId);
-  if (!transport) {
-    res.status(400).send("Unknown session ID");
-    return;
-  }
-  try {
-    await transport.handleRequest(req, res);
-    transports.delete(sessionId);
-  } catch (err) {
-    console.error("[hevy-coach] Error handling DELETE /mcp:", err);
-    if (!res.headersSent) res.status(500).send("Internal server error");
-  }
-});
-
-// --- Start -----------------------------------------------------------------
-
-app.listen(port, "0.0.0.0", () => {
-  const authNote = authToken ? " (Bearer auth enabled)" : " (no auth)";
-  console.log(
-    `[hevy-coach] HTTP MCP server listening on http://0.0.0.0:${port}${authNote}`,
-  );
-  console.log(`[hevy-coach] Health: http://0.0.0.0:${port}/health`);
-  console.log(`[hevy-coach] MCP endpoint: http://0.0.0.0:${port}/mcp`);
-});
-
-// --- Graceful shutdown -----------------------------------------------------
-
-process.on("SIGINT", async () => {
-  console.log("\n[hevy-coach] Shutting down...");
-  const closeAll = [...transports.entries()].map(async ([sid, transport]) => {
+for (const method of ["get", "delete"] as const) {
+  app[method]("/mcp", bearerAuth, async (req: Request, res: Response) => {
+    const transport = existingTransport(req, res);
+    if (!transport) return;
     try {
-      await transport.close();
-      console.log(`[hevy-coach] Closed session ${sid}`);
-    } catch (err) {
-      console.error(`[hevy-coach] Error closing session ${sid}:`, err);
+      await transport.handleRequest(req, res);
+    } catch (error) {
+      log(`${method.toUpperCase()} /mcp failed: ${String(error)}`);
+      if (!res.headersSent) res.status(500).send("Internal server error");
     }
   });
-  await Promise.all(closeAll);
-  console.log("[hevy-coach] Shutdown complete.");
+}
+
+// --- Start / stop ----------------------------------------------------------
+
+app.listen(port, host, () => {
+  log(`listening on http://${host}:${port}/mcp (bearer auth on)`);
+});
+
+process.on("SIGINT", async () => {
+  log("shutting down");
+  await Promise.all([...transports.values()].map((t) => t.close().catch(() => undefined)));
   process.exit(0);
 });
