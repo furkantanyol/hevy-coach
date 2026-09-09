@@ -63,18 +63,20 @@ export interface HevyWorkoutEvent {
   occurred_at: string;
 }
 
+// Flat: one entry per set, newest workout first (verified live 2026-09-09).
 export interface HevyExerciseHistoryEntry {
   workout_id: string;
-  start_time: string;
+  workout_title: string;
+  workout_start_time: string;
+  workout_end_time: string;
   exercise_template_id: string;
-  sets: Array<{
-    type: string;
-    weight_kg: number | null;
-    reps: number | null;
-    rpe: number | null;
-    distance_meters: number | null;
-    duration_seconds: number | null;
-  }>;
+  weight_kg: number | null;
+  reps: number | null;
+  distance_meters: number | null;
+  duration_seconds: number | null;
+  rpe: number | null;
+  custom_metric: number | null;
+  set_type: "warmup" | "normal" | "failure" | "dropset";
 }
 
 export interface HevyRoutineFolder {

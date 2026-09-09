@@ -116,10 +116,7 @@ Use this to identify plateaus, track PRs, and inform programming decisions.`,
           return textResponse("No history found for this exercise.");
         }
 
-        const recent = [...history.exercise_history]
-          .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
-          .slice(0, sessions);
-        const progression = analyzeExerciseProgression(recent);
+        const progression = analyzeExerciseProgression(history.exercise_history, sessions);
         return jsonResponse(progression);
       } catch (error) {
         return errorResponse(getErrorMessage(error));
@@ -173,20 +170,7 @@ Use this BEFORE create-routine to resolve all exercise names to template IDs.`,
 
         const results: Record<string, { id: string; title: string } | null> = {};
         for (const query of queries) {
-          const queryLower = query.toLowerCase();
-          // Try exact match first
-          const exact = library.find((t) => t.title.toLowerCase() === queryLower);
-          if (exact) {
-            results[query] = { id: exact.id, title: exact.title };
-            continue;
-          }
-          // Then partial match
-          const partial = library.filter(
-            (t) =>
-              t.title.toLowerCase().includes(queryLower) ||
-              t.primary.toLowerCase().includes(queryLower)
-          );
-          results[query] = partial.length > 0 ? { id: partial[0].id, title: partial[0].title } : null;
+          results[query] = findBestMatch(library, query);
         }
 
         const found = Object.values(results).filter(Boolean).length;
@@ -238,16 +222,33 @@ async function loadExerciseLibrary(client: HevyClient): Promise<CachedExercise[]
   return all;
 }
 
+const normalise = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Exact normalised title match first; otherwise the shortest title containing the query. */
+export function findBestMatch<T extends { id: string; title: string }>(
+  library: T[],
+  query: string
+): { id: string; title: string } | null {
+  const q = normalise(query);
+  const exact = library.find((t) => normalise(t.title) === q);
+  if (exact) return { id: exact.id, title: exact.title };
+  const partial = library
+    .filter((t) => normalise(t.title).includes(q))
+    .sort((a, b) => a.title.length - b.title.length)[0];
+  return partial ? { id: partial.id, title: partial.title } : null;
+}
+
 async function searchExercises(client: HevyClient, query: string): Promise<Array<{ id: string; title: string }>> {
   const library = await loadExerciseLibrary(client);
-  const queryLower = query.toLowerCase();
+  const q = normalise(query);
   return library
     .filter(
       (t) =>
-        t.title.toLowerCase().includes(queryLower) ||
-        t.primary.toLowerCase().includes(queryLower) ||
-        t.secondary.some((m) => m.toLowerCase().includes(queryLower))
+        normalise(t.title).includes(q) ||
+        t.primary.toLowerCase().includes(q) ||
+        t.secondary.some((m) => m.toLowerCase().includes(q))
     )
+    .sort((a, b) => a.title.length - b.title.length)
     .map((t) => ({ id: t.id, title: t.title }));
 }
 
@@ -409,47 +410,50 @@ function generateTrainingSummary(workouts: HevyWorkout[]) {
   };
 }
 
-function analyzeExerciseProgression(history: HevyExerciseHistoryEntry[]) {
-  const sessions = history
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .map((entry) => {
-      const workingSets = entry.sets.filter((s) => s.type !== "warmup");
-      const maxWeight = Math.max(...workingSets.map((s) => s.weight_kg || 0));
-      const maxReps = Math.max(...workingSets.map((s) => s.reps || 0));
-      const totalVolume = workingSets.reduce(
-        (sum, s) => sum + (s.weight_kg || 0) * (s.reps || 0),
-        0
-      );
+const EPLEY_DIVISOR = 30;
+const epley1RM = (weightKg: number, reps: number) => weightKg * (1 + reps / EPLEY_DIVISOR);
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
-      // Epley formula: 1RM = weight × (1 + reps/30)
+/** History is flat (one row per set). Group by workout, oldest first, keep the last `limit` sessions. */
+export function analyzeExerciseProgression(history: HevyExerciseHistoryEntry[], limit = Number.POSITIVE_INFINITY) {
+  const byWorkout = new Map<string, HevyExerciseHistoryEntry[]>();
+  for (const entry of history) {
+    if (entry.set_type === "warmup") continue;
+    const sets = byWorkout.get(entry.workout_id) ?? [];
+    sets.push(entry);
+    byWorkout.set(entry.workout_id, sets);
+  }
+
+  const sessions = [...byWorkout.values()]
+    .sort((a, b) => new Date(a[0].workout_start_time).getTime() - new Date(b[0].workout_start_time).getTime())
+    .slice(-limit)
+    .map((workingSets) => {
       const bestSet = workingSets.reduce(
         (best, s) => {
-          const e1rm = (s.weight_kg || 0) * (1 + (s.reps || 0) / 30);
-          return e1rm > best.e1rm ? { weight: s.weight_kg || 0, reps: s.reps || 0, e1rm } : best;
+          const e1rm = epley1RM(s.weight_kg ?? 0, s.reps ?? 0);
+          return e1rm > best.e1rm ? { weight: s.weight_kg ?? 0, reps: s.reps ?? 0, e1rm } : best;
         },
         { weight: 0, reps: 0, e1rm: 0 }
       );
-
       return {
-        date: entry.start_time.split("T")[0],
+        date: workingSets[0].workout_start_time.split("T")[0],
         workingSets: workingSets.length,
-        maxWeightKg: maxWeight,
-        maxReps,
-        totalVolume: Math.round(totalVolume),
-        estimated1RM: Math.round(bestSet.e1rm * 10) / 10,
+        maxWeightKg: Math.max(...workingSets.map((s) => s.weight_kg ?? 0)),
+        maxReps: Math.max(...workingSets.map((s) => s.reps ?? 0)),
+        totalVolume: Math.round(workingSets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0)),
+        estimated1RM: round1(bestSet.e1rm),
         bestSet: { weightKg: bestSet.weight, reps: bestSet.reps },
       };
     });
 
-  const allTime1RM = Math.max(...sessions.map((s) => s.estimated1RM));
-  const latest1RM = sessions[sessions.length - 1]?.estimated1RM || 0;
-  const earliest1RM = sessions[0]?.estimated1RM || 0;
+  const latest1RM = sessions[sessions.length - 1]?.estimated1RM ?? 0;
+  const earliest1RM = sessions[0]?.estimated1RM ?? 0;
 
   return {
     sessionCount: sessions.length,
     sessions,
-    allTimeBestE1RM: allTime1RM,
-    progressionKg: Math.round((latest1RM - earliest1RM) * 10) / 10,
+    allTimeBestE1RM: Math.max(0, ...sessions.map((s) => s.estimated1RM)),
+    progressionKg: round1(latest1RM - earliest1RM),
     trend: latest1RM > earliest1RM ? "improving" : latest1RM === earliest1RM ? "plateau" : "declining",
   };
 }
