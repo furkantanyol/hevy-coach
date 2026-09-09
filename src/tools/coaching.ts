@@ -111,12 +111,15 @@ Use this to identify plateaus, track PRs, and inform programming decisions.`,
     },
     async ({ exerciseTemplateId, sessions }) => {
       try {
-        const history = await client.getExerciseHistory(exerciseTemplateId, 1, sessions);
+        const history = await client.getExerciseHistory(exerciseTemplateId);
         if (!history.exercise_history?.length) {
           return textResponse("No history found for this exercise.");
         }
 
-        const progression = analyzeExerciseProgression(history.exercise_history);
+        const recent = [...history.exercise_history]
+          .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
+          .slice(0, sessions);
+        const progression = analyzeExerciseProgression(recent);
         return jsonResponse(progression);
       } catch (error) {
         return errorResponse(getErrorMessage(error));

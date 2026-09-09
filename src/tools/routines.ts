@@ -99,20 +99,18 @@ Each set needs: type (warmup/normal/failure/dropset), weight_kg, reps. Optional:
   server.registerTool(
     "update-routine",
     {
-      description: "Update an existing routine by ID. Replaces all exercises and sets. Same schema as create-routine.",
+      description: "Update an existing routine by ID. Replaces title, notes, and all exercises/sets. Note: the Hevy PUT endpoint does not move routines between folders — folder_id cannot be changed here.",
       inputSchema: {
         routineId: z.string().min(1),
         title: z.string().min(1),
-        folderId: z.coerce.number().optional(),
         notes: z.string().optional(),
         exercises: z.array(exerciseSchema),
       },
     },
-    async ({ routineId, title, folderId, notes, exercises }) => {
+    async ({ routineId, title, notes, exercises }) => {
       try {
         const routine = await client.updateRoutine(routineId, {
           title,
-          folder_id: folderId,
           notes,
           exercises,
         });

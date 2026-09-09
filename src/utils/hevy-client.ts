@@ -118,6 +118,86 @@ export interface RoutineInput {
   exercises: RoutineExerciseInput[];
 }
 
+export interface RoutineUpdateInput {
+  title: string;
+  notes?: string;
+  exercises: RoutineExerciseInput[];
+}
+
+export type CustomExerciseType =
+  | "weight_reps"
+  | "reps_only"
+  | "bodyweight_reps"
+  | "bodyweight_assisted_reps"
+  | "duration"
+  | "weight_duration"
+  | "distance_duration"
+  | "short_distance_weight";
+
+export type EquipmentCategory =
+  | "none"
+  | "barbell"
+  | "dumbbell"
+  | "kettlebell"
+  | "machine"
+  | "plate"
+  | "resistance_band"
+  | "suspension"
+  | "other";
+
+export type MuscleGroup =
+  | "abdominals"
+  | "shoulders"
+  | "biceps"
+  | "triceps"
+  | "forearms"
+  | "quadriceps"
+  | "hamstrings"
+  | "calves"
+  | "glutes"
+  | "abductors"
+  | "adductors"
+  | "lats"
+  | "upper_back"
+  | "traps"
+  | "lower_back"
+  | "chest"
+  | "cardio"
+  | "neck"
+  | "full_body"
+  | "other";
+
+export interface CustomExerciseInput {
+  title: string;
+  exercise_type: CustomExerciseType;
+  equipment_category: EquipmentCategory;
+  muscle_group: MuscleGroup;
+  other_muscles?: MuscleGroup[];
+}
+
+export interface HevyBodyMeasurement {
+  date: string;
+  weight_kg?: number | null;
+  lean_mass_kg?: number | null;
+  fat_percent?: number | null;
+  neck_cm?: number | null;
+  shoulder_cm?: number | null;
+  chest_cm?: number | null;
+  left_bicep_cm?: number | null;
+  right_bicep_cm?: number | null;
+  left_forearm_cm?: number | null;
+  right_forearm_cm?: number | null;
+  abdomen?: number | null;
+  waist?: number | null;
+  hips?: number | null;
+  left_thigh?: number | null;
+  right_thigh?: number | null;
+  left_calf?: number | null;
+  right_calf?: number | null;
+}
+
+export type BodyMeasurementUpdateInput = Omit<HevyBodyMeasurement, "date">;
+
 export interface WorkoutSetInput {
   type?: string;
   weight_kg?: number | null;
@@ -221,8 +301,8 @@ export class HevyClient {
     return data.routine;
   }
 
-  async updateRoutine(routineId: string, routine: RoutineInput): Promise<HevyRoutine> {
-    const { data } = await this.client.put(`/routines/${routineId}`, { routine: this.formatRoutineBody(routine) });
+  async updateRoutine(routineId: string, routine: RoutineUpdateInput): Promise<HevyRoutine> {
+    const { data } = await this.client.put(`/routines/${routineId}`, { routine: this.formatRoutinePutBody(routine) });
     return data.routine;
   }
 
@@ -238,20 +318,25 @@ export class HevyClient {
     return data.exercise_template ?? null;
   }
 
-  async getExerciseHistory(templateId: string, page = 1, pageSize = 5): Promise<{ exercise_history: HevyExerciseHistoryEntry[]; page_count: number }> {
-    const { data } = await this.client.get(`/exercise_templates/${templateId}/history`, { params: { page, pageSize } });
-    return { exercise_history: data.exercise_history ?? [], page_count: data.page_count ?? 1 };
+  async getExerciseHistory(templateId: string, startDate?: string, endDate?: string): Promise<{ exercise_history: HevyExerciseHistoryEntry[] }> {
+    const params: Record<string, string> = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    const { data } = await this.client.get(`/exercise_history/${templateId}`, { params });
+    return { exercise_history: data.exercise_history ?? [] };
   }
 
-  async createExerciseTemplate(template: {
-    title: string;
-    type: string;
-    primary_muscle_group: string;
-    secondary_muscle_groups?: string[];
-    equipment?: string;
-  }): Promise<HevyExerciseTemplate> {
-    const { data } = await this.client.post("/exercise_templates", { exercise_template: template });
-    return data.exercise_template;
+  async createExerciseTemplate(template: CustomExerciseInput): Promise<HevyExerciseTemplate> {
+    const { data } = await this.client.post("/exercise_templates", {
+      exercise: {
+        title: template.title,
+        exercise_type: template.exercise_type,
+        equipment_category: template.equipment_category,
+        muscle_group: template.muscle_group,
+        other_muscles: template.other_muscles ?? [],
+      },
+    });
+    return data.exercise_template ?? data;
   }
 
   // --- Routine Folders ---
@@ -269,6 +354,26 @@ export class HevyClient {
   async createRoutineFolder(title: string): Promise<HevyRoutineFolder> {
     const { data } = await this.client.post("/routine_folders", { routine_folder: { title } });
     return data.routine_folder;
+  }
+
+  // --- Body Measurements ---
+
+  async getBodyMeasurements(page = 1, pageSize = 5): Promise<{ body_measurements: HevyBodyMeasurement[]; page_count: number }> {
+    const { data } = await this.client.get("/body_measurements", { params: { page, pageSize } });
+    return { body_measurements: data.body_measurements ?? [], page_count: data.page_count ?? 1 };
+  }
+
+  async getBodyMeasurement(date: string): Promise<HevyBodyMeasurement | null> {
+    const { data } = await this.client.get(`/body_measurements/${date}`);
+    return data ?? null;
+  }
+
+  async createBodyMeasurement(measurement: HevyBodyMeasurement): Promise<void> {
+    await this.client.post("/body_measurements", measurement);
+  }
+
+  async updateBodyMeasurement(date: string, measurement: BodyMeasurementUpdateInput): Promise<void> {
+    await this.client.put(`/body_measurements/${date}`, measurement);
   }
 
   // --- Private ---
@@ -289,6 +394,29 @@ export class HevyClient {
     return {
       title: routine.title,
       folder_id: routine.folder_id ?? null,
+      notes: routine.notes ?? null,
+      exercises: routine.exercises.map((ex) => ({
+        exercise_template_id: ex.exercise_template_id,
+        superset_id: ex.superset_id ?? null,
+        rest_seconds: ex.rest_seconds ?? null,
+        notes: ex.notes ?? null,
+        sets: ex.sets.map((s) => ({
+          type: s.type ?? "normal",
+          weight_kg: s.weight_kg ?? null,
+          reps: s.reps ?? null,
+          distance_meters: s.distance_meters ?? null,
+          duration_seconds: s.duration_seconds ?? null,
+          custom_metric: s.custom_metric ?? null,
+          ...(s.rep_range ? { rep_range: s.rep_range } : {}),
+        })),
+      })),
+    };
+  }
+
+  // PUT /routines/{id} does not accept folder_id (unlike POST).
+  private formatRoutinePutBody(routine: RoutineUpdateInput) {
+    return {
+      title: routine.title,
       notes: routine.notes ?? null,
       exercises: routine.exercises.map((ex) => ({
         exercise_template_id: ex.exercise_template_id,

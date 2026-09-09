@@ -1,21 +1,26 @@
 {
   "name": "hevy-coach",
-  "version": "0.1.4",
-  "description": "AI Personal Training MCP Server — turns Claude into your strength, conditioning, mobility, and longevity coach via Hevy",
+  "version": "0.2.0",
+  "description": "AI Personal Training MCP Server — your strength, conditioning, mobility, and longevity coach via Hevy. Works with Claude, ChatGPT, and Gemini.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "hevy-coach": "dist/cli.js"
+    "hevy-coach": "dist/cli.js",
+    "hevy-coach-http": "dist/http.js"
   },
   "files": [
     "dist",
     "docs",
-    "README.md"
+    "README.md",
+    "CHATGPT.md",
+    "GEMINI.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch --env-file .env src/cli.ts",
+    "dev:http": "tsx watch --env-file .env src/http.ts",
     "start": "node --env-file .env dist/cli.js",
+    "start:http": "node --env-file .env dist/http.js",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src/",
     "test": "vitest --run"
@@ -43,6 +48,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.19.13",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
