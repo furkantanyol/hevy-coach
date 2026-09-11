@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 (2026-09-11)
 
 - Client dependency renamed to `hevy-sdk` (was `@furkantanyol/hevy-client`). No behavior change.
 

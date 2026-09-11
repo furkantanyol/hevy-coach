@@ -1,6 +1,6 @@
 {
   "name": "hevy-coach",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI personal-training MCP server for Hevy: workout analysis, progression tracking, routine programming. Works with Claude, ChatGPT and Gemini.",
   "license": "MIT",
   "author": "Furkan Tanyol",
