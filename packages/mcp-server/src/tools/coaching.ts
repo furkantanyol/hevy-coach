@@ -1,11 +1,6 @@
-import type {
-  ExerciseHistoryEntry,
-  ExerciseTemplate,
-  HevyClient,
-  Workout,
-} from "@furkantanyol/hevy-client";
-import { MAX_PAGE_SIZE } from "@furkantanyol/hevy-client";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ExerciseHistoryEntry, ExerciseTemplate, HevyClient, Workout } from "hevy-sdk";
+import { MAX_PAGE_SIZE } from "hevy-sdk";
 import { z } from "zod";
 import { jsonResponse, safe, textResponse } from "../utils/response.js";
 import { exerciseTemplateId } from "./schemas.js";

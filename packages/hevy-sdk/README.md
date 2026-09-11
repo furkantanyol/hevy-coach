@@ -1,17 +1,17 @@
-# @furkantanyol/hevy-client
+# hevy-sdk
 
 Typed client for the [Hevy](https://hevyapp.com) public API. `fetch` only, zero dependencies, ESM + CJS. Runs in Node 20+ and React Native.
 
 Types are generated from Hevy's live OpenAPI document and corrected where the live API differs from it (every correction is documented in the repo under `docs/api/`).
 
 ```bash
-npm i @furkantanyol/hevy-client
+npm i hevy-sdk
 ```
 
 ## Usage
 
 ```ts
-import { createHevyClient, HevyApiError } from "@furkantanyol/hevy-client";
+import { createHevyClient, HevyApiError } from "hevy-sdk";
 
 const hevy = createHevyClient({ apiKey: "..." });
 

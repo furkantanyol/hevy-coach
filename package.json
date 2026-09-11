@@ -13,7 +13,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "vitest --run",
-    "generate:types": "pnpm --filter @furkantanyol/hevy-client generate:types",
+    "generate:types": "pnpm --filter hevy-sdk generate:types",
     "validate": "pnpm format:check && pnpm lint && pnpm build && pnpm typecheck && pnpm test"
   },
   "devDependencies": {

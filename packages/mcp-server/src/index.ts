@@ -1,5 +1,5 @@
-import { createHevyClient, type HevyClientOptions } from "@furkantanyol/hevy-client";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createHevyClient, type HevyClientOptions } from "hevy-sdk";
 import { registerBodyMeasurementTools } from "./tools/body-measurements.js";
 import { registerCoachingTools } from "./tools/coaching.js";
 import { registerExerciseTools } from "./tools/exercises.js";

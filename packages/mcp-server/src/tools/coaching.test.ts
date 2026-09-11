@@ -1,4 +1,4 @@
-import type { ExerciseHistoryEntry } from "@furkantanyol/hevy-client";
+import type { ExerciseHistoryEntry } from "hevy-sdk";
 import { describe, expect, it } from "vitest";
 import { analyzeExerciseProgression, findBestMatch, recommend } from "./coaching.js";
 

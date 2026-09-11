@@ -1,5 +1,5 @@
-import type { HevyClient } from "@furkantanyol/hevy-client";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { HevyClient } from "hevy-sdk";
 import { z } from "zod";
 import { jsonResponse, safe, textResponse } from "../utils/response.js";
 import { pageSchema, ymdDate } from "./schemas.js";

@@ -1,10 +1,5 @@
-import type {
-  CustomExerciseType,
-  EquipmentCategory,
-  HevyClient,
-  MuscleGroup,
-} from "@furkantanyol/hevy-client";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CustomExerciseType, EquipmentCategory, HevyClient, MuscleGroup } from "hevy-sdk";
 import { z } from "zod";
 import { jsonResponse, safe, textResponse } from "../utils/response.js";
 import { invalidateLibrary } from "./coaching.js";

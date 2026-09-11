@@ -14,5 +14,5 @@ Retries: 429, 5xx and network errors, exponential backoff with full jitter, `Ret
 
 ## Consequences
 
-- Zero runtime dependencies for `@furkantanyol/hevy-client`.
+- Zero runtime dependencies for `hevy-sdk`.
 - Errors are two classes: `HevyApiError` (non-2xx, carries status, Hevy's `error` code and parsed body) and `HevyNetworkError`.

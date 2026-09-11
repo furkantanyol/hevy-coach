@@ -1,9 +1,4 @@
-import {
-  MAX_PAGE_SIZE,
-  MAX_TEMPLATE_PAGE_SIZE,
-  type Rpe,
-  type SetType,
-} from "@furkantanyol/hevy-client";
+import { MAX_PAGE_SIZE, MAX_TEMPLATE_PAGE_SIZE, type Rpe, type SetType } from "hevy-sdk";
 import { z } from "zod";
 
 const DEFAULT_PAGE_SIZE = 5;

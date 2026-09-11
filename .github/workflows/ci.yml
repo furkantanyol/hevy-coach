@@ -19,5 +19,5 @@ jobs:
       - run: pnpm validate
       - name: Check packages are publishable
         run: |
-          pnpm --filter @furkantanyol/hevy-client exec pnpm dlx publint
+          pnpm --filter hevy-sdk exec pnpm dlx publint
           pnpm --filter hevy-coach exec pnpm dlx publint

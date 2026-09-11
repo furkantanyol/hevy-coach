@@ -1,5 +1,5 @@
-import { HevyApiError, HevyNetworkError } from "@furkantanyol/hevy-client";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { HevyApiError, HevyNetworkError } from "hevy-sdk";
 
 export function jsonResponse(data: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };

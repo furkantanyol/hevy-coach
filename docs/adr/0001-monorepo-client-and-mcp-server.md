@@ -10,7 +10,7 @@ Date: 2026-09-09. Status: accepted.
 
 pnpm workspace with two publishable packages:
 
-- `@furkantanyol/hevy-client`: fetch-only typed client, no runtime dependencies, ESM + CJS.
+- `hevy-sdk`: fetch-only typed client, no runtime dependencies, ESM + CJS.
 - `hevy-coach`: MCP server that depends on the client, ESM only (it is a CLI; Node 22+ can `require()` ESM anyway).
 
 Types are generated from the saved OpenAPI snapshot, not written by hand.

@@ -1,5 +1,5 @@
 {
-  "name": "@furkantanyol/hevy-client",
+  "name": "hevy-sdk",
   "version": "1.0.0",
   "description": "Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Works in Node and React Native.",
   "license": "MIT",
@@ -40,6 +40,7 @@
     "hevy",
     "api",
     "client",
+    "sdk",
     "fitness",
     "workout",
     "react-native",
@@ -48,7 +49,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/furkantanyol/hevy-coach.git",
-    "directory": "packages/hevy-client"
+    "directory": "packages/hevy-sdk"
   },
   "publishConfig": {
     "access": "public"

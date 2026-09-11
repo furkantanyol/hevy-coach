@@ -48,9 +48,9 @@
     "directory": "packages/mcp-server"
   },
   "dependencies": {
-    "@furkantanyol/hevy-client": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "express": "^5.2.1",
+    "hevy-sdk": "workspace:^",
     "zod": "^4.5.4"
   },
   "devDependencies": {

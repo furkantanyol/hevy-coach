@@ -30,19 +30,19 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3))
 
-  packages/hevy-client: {}
+  packages/hevy-sdk: {}
 
   packages/mcp-server:
     dependencies:
-      '@furkantanyol/hevy-client':
-        specifier: workspace:^
-        version: link:../hevy-client
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(zod@4.5.4)
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      hevy-sdk:
+        specifier: workspace:^
+        version: link:../hevy-sdk
       zod:
         specifier: ^4.5.4
         version: 4.5.4

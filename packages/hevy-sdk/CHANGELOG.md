@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.0.0 (2026-09-09)
+## 1.0.0 (2026-09-11)
+
+Published as `hevy-sdk`. Previously published as `@furkantanyol/hevy-client` 1.0.0 (2026-09-09), now deprecated. Same code.
 
 First release, extracted from `hevy-coach` 0.2.0.
 
