@@ -1,19 +1,27 @@
 # HevyCoach
 
-An AI strength coach on top of [Hevy](https://hevyapp.com), shipped as two npm packages:
+An MCP server and a typed SDK for the [Hevy](https://hevyapp.com) workout app API, so an AI assistant can act as your strength coach.
+
+## What is inside
 
 | Package | What it is | Install |
 |---|---|---|
-| [`hevy-coach`](packages/mcp-server) | MCP server: 26 tools for workouts, routines, exercise history, body measurements, plus coaching analysis (workout vs plan, progression with Epley 1RM, training summaries, exercise lookup). | `npx hevy-coach` |
-| [`hevy-sdk`](packages/hevy-sdk) | Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Works in Node 20+ and React Native. | `npm i hevy-sdk` |
+| [`hevy-coach`](packages/mcp-server) | MCP server with 26 tools for workouts, routines, exercises and body measurements, plus coaching analysis. | `npx hevy-coach` |
+| [`hevy-sdk`](packages/hevy-sdk) | Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Node 20+ and React Native. | `npm i hevy-sdk` |
 
 Both are generated from and verified against the live Hevy API (`docs/api/`).
 
-## Use the coach
+## Quick start
 
-You need a Hevy API key (Hevy Settings → API) and an MCP-capable assistant.
+You need a Hevy API key (Hevy Settings → API) and an MCP-capable assistant. Node 22.18 or newer.
 
-**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Claude Code:
+
+```bash
+claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach
+```
+
+Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
@@ -27,17 +35,66 @@ You need a Hevy API key (Hevy Settings → API) and an MCP-capable assistant.
 }
 ```
 
-**Claude Code:**
+To give the assistant a coaching persona, paste [`prompts/COACH.md`](prompts/COACH.md) into a Claude Project's instructions. Guides for [ChatGPT](prompts/CHATGPT.md) and [Gemini](prompts/GEMINI.md) are in `prompts/`. For web clients, the package also ships an HTTP transport (`hevy-coach-http`): see the [server README](packages/mcp-server/README.md#http-transport).
+
+## Tools
+
+Workouts
+
+| Tool | Purpose |
+|---|---|
+| `get-workouts` | List logged workouts. |
+| `get-workout` | Get one workout with every exercise and set. |
+| `get-workout-count` | Total number of logged workouts. |
+| `get-workout-events` | Workouts updated or deleted since a timestamp, for syncing. |
+| `create-workout` | Log a workout. |
+| `update-workout` | Update a logged workout. |
+
+Routines
+
+| Tool | Purpose |
+|---|---|
+| `get-routines` | List routines with their exercises and target sets. |
+| `get-routine` | Get one routine. |
+| `create-routine` | Create a routine. |
+| `update-routine` | Replace a routine by id. |
+| `get-routine-folders` | List routine folders. |
+| `get-routine-folder` | Get one routine folder. |
+| `create-routine-folder` | Create a routine folder. |
+
+Exercises
+
+| Tool | Purpose |
+|---|---|
+| `get-exercise-templates` | List exercise templates. |
+| `get-exercise-template` | Get one exercise template. |
+| `get-exercise-history` | Logged sets for one exercise. |
+| `create-exercise-template` | Create a custom exercise template. |
+
+Body measurements and user
+
+| Tool | Purpose |
+|---|---|
+| `get-body-measurements` | List body measurements. |
+| `get-body-measurement` | Get the measurement for one date. |
+| `log-body-measurement` | Log or overwrite the measurement for a date. |
+| `get-user-info` | Get the account profile. |
+
+Coaching
+
+| Tool | Purpose |
+|---|---|
+| `analyze-workout` | Compare a completed workout with the plan and get per-exercise recommendations. |
+| `get-training-summary` | Aggregate the last N workouts: sessions, sets, duration, rest days. |
+| `get-exercise-progression` | Session-by-session max weight, reps, volume and estimated 1RM (Epley). |
+| `find-exercise` | Find an exercise template by name. |
+| `batch-find-exercises` | Resolve many exercise names to template ids in one call. |
+
+## SDK
 
 ```bash
-claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach
+npm i hevy-sdk
 ```
-
-Then give the assistant the coaching persona: paste [`prompts/COACH.md`](prompts/COACH.md) into a Claude Project's instructions (or see [`prompts/CHATGPT.md`](prompts/CHATGPT.md) and [`prompts/GEMINI.md`](prompts/GEMINI.md)) and say "let's do the onboarding".
-
-For ChatGPT or Gemini web, run the HTTP transport: see the [server README](packages/mcp-server/README.md#http-transport).
-
-## Use the client
 
 ```ts
 import { createHevyClient } from "hevy-sdk";
@@ -48,21 +105,23 @@ const { upserts, deletes, cursor } = await hevy.workouts.changes(lastCursor);
 const history = await hevy.exerciseHistory.get("D04AC939", { startDate: "2026-01-01" });
 ```
 
-Full API in the [client README](packages/hevy-sdk/README.md).
+Full API in the [SDK README](packages/hevy-sdk/README.md).
 
-## Repository
-
-```
-packages/hevy-sdk   the client
-packages/mcp-server    the MCP server
-prompts/               coaching persona + assistant setup guides
-docs/api/              live OpenAPI snapshot and probe results
-docs/adr/              decisions
-```
+## Development
 
 ```bash
 pnpm install
+pnpm build
+pnpm test
 pnpm validate    # format, lint, build, typecheck, test
+```
+
+```
+packages/hevy-sdk      the client
+packages/mcp-server    the MCP server
+prompts/               coaching persona and assistant setup guides
+docs/api/              OpenAPI snapshot and probe results
+docs/adr/              decisions
 ```
 
 ## License
