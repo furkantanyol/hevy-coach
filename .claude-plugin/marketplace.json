@@ -1,0 +1,11 @@
+{
+  "name": "hevy-coach",
+  "owner": { "name": "Furkan Tanyol" },
+  "plugins": [
+    {
+      "name": "hevy-coach",
+      "source": "./",
+      "description": "AI strength coach for Hevy: MCP tools plus a coaching skill."
+    }
+  ]
+}

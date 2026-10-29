@@ -9,13 +9,19 @@ An MCP server and a typed SDK for the [Hevy](https://hevyapp.com) workout app AP
 | [`hevy-coach`](packages/mcp-server) | MCP server with 26 tools for workouts, routines, exercises and body measurements, plus coaching analysis. | `npx hevy-coach` |
 | [`hevy-sdk`](packages/hevy-sdk) | Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Node 20+ and React Native. | `npm i hevy-sdk` |
 
-Both are generated from and verified against the live Hevy API (`docs/api/`).
+The SDK's types are generated from Hevy's OpenAPI spec. Where the spec disagrees with the live API, the generator patches it, and the probe results behind each patch are in `docs/api/`.
 
 ## Quick start
 
 You need a Hevy API key (Hevy Settings → API) and an MCP-capable assistant. Node 22.18 or newer.
 
-Claude Code:
+Claude Code, as a plugin. This installs the MCP server and a `coach` skill that loads the coaching persona, and asks for your API key during install:
+
+```
+/plugin install hevy-coach --marketplace furkantanyol/hevy-coach
+```
+
+Claude Code, tools only (no persona):
 
 ```bash
 claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach
@@ -35,7 +41,7 @@ Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json
 }
 ```
 
-To give the assistant a coaching persona, paste [`prompts/COACH.md`](prompts/COACH.md) into a Claude Project's instructions. Guides for [ChatGPT](prompts/CHATGPT.md) and [Gemini](prompts/GEMINI.md) are in `prompts/`. For web clients, the package also ships an HTTP transport (`hevy-coach-http`): see the [server README](packages/mcp-server/README.md#http-transport).
+Outside the plugin, give the assistant its coaching persona by pasting [`prompts/COACH.md`](prompts/COACH.md) into a Claude Project's instructions. Guides for [ChatGPT](prompts/CHATGPT.md) and [Gemini](prompts/GEMINI.md) are in `prompts/`. For web clients, the package also ships an HTTP transport (`hevy-coach-http`): see the [server README](packages/mcp-server/README.md#http-transport).
 
 ## Tools
 

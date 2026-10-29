@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hevy-coach": {
+      "command": "npx",
+      "args": ["-y", "hevy-coach"],
+      "env": { "HEVY_API_KEY": "${user_config.hevy_api_key}" }
+    }
+  }
+}
