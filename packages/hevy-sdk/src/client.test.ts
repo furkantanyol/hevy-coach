@@ -32,6 +32,23 @@ describe("bodyMeasurements.upsert", () => {
 });
 
 describe("response envelopes", () => {
+  it("should unwrap POST /workouts {workout: [w]} and accept a bare workout", async () => {
+    const fetchFn = mockFetch({ body: { workout: [{ id: "w1" }] } }, { body: { id: "w1" } });
+    const client = createHevyClient({ apiKey: "k", fetch: fetchFn });
+    const input = { title: "t", start_time: "s", end_time: "e", is_private: false, exercises: [] };
+    const ids = [
+      (await client.workouts.create(input)).id,
+      (await client.workouts.create(input)).id,
+    ];
+    expect(ids).toEqual(["w1", "w1"]);
+  });
+
+  it("should throw instead of returning undefined when POST /workouts returns an empty array", async () => {
+    const client = createHevyClient({ apiKey: "k", fetch: mockFetch({ body: { workout: [] } }) });
+    const input = { title: "t", start_time: "s", end_time: "e", is_private: false, exercises: [] };
+    await expect(client.workouts.create(input)).rejects.toThrow(/empty workout array/);
+  });
+
   it("should unwrap GET /routines/{id} and accept bare or wrapped PUT responses", async () => {
     const fetchFn = mockFetch(
       { body: { routine: { id: "r1" } } },

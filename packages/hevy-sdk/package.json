@@ -1,6 +1,6 @@
 {
   "name": "hevy-sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Works in Node and React Native.",
   "license": "MIT",
   "author": "Furkan Tanyol",

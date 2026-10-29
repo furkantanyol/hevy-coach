@@ -1,10 +1,11 @@
 // Generates src/generated/schema.ts from the saved live OpenAPI snapshot.
 // Patches below correct the spec where the live API provably differs
-// (see docs/api/probes-2026-09-09.md). Re-run: pnpm generate:types
+// (see docs/api/probes-2026-09-09.md; patches the 2026-10-29 spec fixed are gone,
+// see docs/api/probes-2026-10-29.md). Re-run: pnpm generate:types
 import { readFileSync, writeFileSync } from "node:fs";
 import openapiTS, { astToString } from "openapi-typescript";
 
-const SPEC = new URL("../../../docs/api/hevy-openapi.2026-09-09.json", import.meta.url);
+const SPEC = new URL("../../../docs/api/hevy-openapi.2026-10-29.json", import.meta.url);
 const OUT = new URL("../src/generated/schema.ts", import.meta.url);
 const SET_TYPES = ["normal", "warmup", "dropset", "failure"];
 
@@ -25,9 +26,6 @@ for (const name of ["Workout", "Routine"]) {
   schemas[name].properties.exercises.items.properties.sets.items.properties.type.enum = SET_TYPES;
 }
 
-// Probes §5: rest_seconds is a number on live responses, spec says string.
-schemas.Routine.properties.exercises.items.properties.rest_seconds.type = "number";
-
 // Probes §6: body measurement responses carry id and created_at.
 schemas.BodyMeasurement.properties.id = { type: "number" };
 schemas.BodyMeasurement.properties.created_at = { type: "string" };
@@ -35,9 +33,6 @@ schemas.BodyMeasurement.properties.created_at = { type: "string" };
 // Events are a discriminated union on `type`; the spec only gives examples.
 schemas.UpdatedWorkout.properties.type.enum = ["updated"];
 schemas.DeletedWorkout.properties.type.enum = ["deleted"];
-
-// Probes §6: routine_id is null for workouts not started from a routine.
-schemas.Workout.properties.routine_id.nullable = true;
 
 // Response schemas declare no `required`, so every field would be optional.
 // Live responses always include every key (probes §6), except rep_range on routine sets

@@ -55,7 +55,13 @@ export function createHevyClient(options: HevyClientOptions) {
       get: (workoutId: string) => get<Workout>(`/workouts/${workoutId}`),
       count: () => get<{ workout_count: number }>("/workouts/count").then((r) => r.workout_count),
       create: (workout: WorkoutInput) =>
-        http.request<Workout>({ method: "POST", path: "/workouts", body: { workout } }),
+        http
+          .request<Workout | { workout: Workout[] }>({
+            method: "POST",
+            path: "/workouts",
+            body: { workout },
+          })
+          .then(unwrapWorkout),
       update: (workoutId: string, workout: WorkoutInput) =>
         http.request<Workout>({ method: "PUT", path: `/workouts/${workoutId}`, body: { workout } }),
       /** Raw events page. Use `changes()` for a merged delta. */
@@ -201,7 +207,18 @@ export function createHevyClient(options: HevyClientOptions) {
   };
 }
 
-// GET /routines/{id} wraps as {routine}; the spec says POST/PUT return a bare Routine. Accept both.
+// The 2026-10-29 spec documents POST/PUT /routines as {routine}; the 2026-09-09 one said bare. Accept both.
 function unwrapRoutine(result: Routine | { routine: Routine }): Routine {
   return "routine" in result ? result.routine : result;
+}
+
+// The 2026-10-29 spec documents POST /workouts as {workout: [Workout]}, a one-element array.
+// Not verified live (docs/api/probes-2026-10-29.md), so a bare Workout is accepted too.
+function unwrapWorkout(result: Workout | { workout: Workout[] }): Workout {
+  if (!("workout" in result)) return result;
+  const [created] = result.workout;
+  if (!created) {
+    throw new Error("POST /workouts succeeded but returned an empty workout array; do not retry");
+  }
+  return created;
 }
