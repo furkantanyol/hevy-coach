@@ -99,7 +99,7 @@ export function registerExerciseTools(server: McpServer, client: HevyClient) {
     "create-exercise-template",
     {
       description:
-        "Create a custom exercise in the user's library. Check batch-find-exercises first to avoid duplicating a built-in exercise. The response id is NOT an exercise_template_id: after creating, call batch-find-exercises with the title to get the id to use in routines and workouts.",
+        "Create a custom exercise in the user's library. Check batch-find-exercises first to avoid duplicating a built-in exercise. The response id is NOT an exercise_template_id: after creating, call batch-find-exercises with the title to get the id to use in routines and workouts. Hevy caps custom exercises per account (403 exceeds-custom-exercise-limit).",
       inputSchema: {
         title: z.string().min(1),
         exercise_type: z.enum(EXERCISE_TYPES).describe("How the exercise is measured"),

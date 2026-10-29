@@ -1,6 +1,6 @@
 {
   "name": "hevy-coach",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "AI strength coach for Hevy: 26 MCP tools for workouts, routines, exercises and body measurements, plus a coaching skill.",
   "author": { "name": "Furkan Tanyol" },
   "license": "MIT",

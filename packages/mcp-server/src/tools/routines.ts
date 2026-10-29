@@ -43,7 +43,12 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
       inputSchema: {
         title: z.string().min(1),
         folder_id: folderId,
-        notes: z.string().optional().describe("Routine-level notes shown in the app"),
+        notes: z
+          .string()
+          .optional()
+          .describe(
+            "Routine-level notes. Accepted by the API but not returned by any read endpoint, so put anything that matters in exercise notes.",
+          ),
         exercises: z.array(routineExerciseSchema).min(1),
       },
     },
@@ -61,7 +66,10 @@ export function registerRoutineTools(server: McpServer, client: HevyClient) {
         routineId: z.string().min(1),
         title: z.string().min(1),
         folder_id: folderId,
-        notes: z.string().optional(),
+        notes: z
+          .string()
+          .optional()
+          .describe("Not returned by any read endpoint; prefer exercise notes."),
         exercises: z.array(routineExerciseSchema).min(1),
       },
     },

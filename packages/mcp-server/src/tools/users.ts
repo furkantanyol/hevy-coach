@@ -7,7 +7,7 @@ export function registerUserTools(server: McpServer, client: HevyClient) {
     "get-user-info",
     {
       description:
-        "Get the authenticated Hevy user's profile: id, display name and public profile URL.",
+        "Get the authenticated Hevy user's profile: id, username, display name, public profile URL, whether they are on Hevy Pro, and their preferred weight (kg/lbs) and distance (kilometers/miles) units. Use the units when presenting numbers.",
       inputSchema: {},
     },
     safe(async () => jsonResponse(await client.user.info())),

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 (2026-10-29)
+
+- `get-user-info` now returns username, Pro status and the user's weight and distance units (hevy-sdk 1.1.0, 2026-10-29 spec).
+- `get-exercise-template` and `get-exercise-templates` include `thumbnail_url`.
+- `create-exercise-template` description notes the per-account custom exercise cap (403 `exceeds-custom-exercise-limit`).
+- `create-workout` always returns a bare workout object, whether or not the API wraps it in `{ workout: [...] }` as the 2026-10-29 spec documents.
+- `create-routine` and `update-routine` say that routine-level `notes` is not returned by any read endpoint (verified live 2026-10-29), so it cannot be confirmed through the API.
+
 ## 1.0.1 (2026-09-11)
 
 - Client dependency renamed to `hevy-sdk` (was `@furkantanyol/hevy-client`). No behavior change.
