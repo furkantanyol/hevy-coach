@@ -13,7 +13,7 @@ Requires Node 22.18+ and a Hevy API key (Hevy Settings → API).
   "mcpServers": {
     "hevy-coach": {
       "command": "npx",
-      "args": ["-y", "hevy-coach"],
+      "args": ["-y", "hevy-coach@latest"],
       "env": { "HEVY_API_KEY": "your-hevy-api-key" }
     }
   }
@@ -23,7 +23,7 @@ Requires Node 22.18+ and a Hevy API key (Hevy Settings → API).
 **Claude Code:**
 
 ```bash
-claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach
+claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach@latest
 ```
 
 Then add the coaching persona from the repository's `prompts/COACH.md` to your project instructions and say "let's do the onboarding".

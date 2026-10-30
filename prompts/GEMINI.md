@@ -11,7 +11,7 @@ Add to your `~/.gemini/settings.json` (or `.gemini/settings.json` in your projec
   "mcpServers": {
     "hevy-coach": {
       "command": "npx",
-      "args": ["-y", "hevy-coach"],
+      "args": ["-y", "hevy-coach@latest"],
       "env": {
         "HEVY_API_KEY": "your-api-key"
       }

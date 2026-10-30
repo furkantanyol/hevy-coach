@@ -24,7 +24,7 @@ Claude Code, as a plugin. This installs the MCP server and a `coach` skill that 
 Claude Code, tools only (no persona):
 
 ```bash
-claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach
+claude mcp add hevy-coach -e HEVY_API_KEY=your-hevy-api-key -- npx -y hevy-coach@latest
 ```
 
 Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
@@ -34,7 +34,7 @@ Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json
   "mcpServers": {
     "hevy-coach": {
       "command": "npx",
-      "args": ["-y", "hevy-coach"],
+      "args": ["-y", "hevy-coach@latest"],
       "env": { "HEVY_API_KEY": "your-hevy-api-key" }
     }
   }
