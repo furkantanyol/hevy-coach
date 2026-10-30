@@ -10,7 +10,7 @@
     "hevy_api_key": {
       "type": "string",
       "title": "Hevy API key",
-      "description": "Hevy app → Settings → API",
+      "description": "Needs Hevy Pro. Get the key at hevy.com/settings?developer",
       "sensitive": true
     }
   }

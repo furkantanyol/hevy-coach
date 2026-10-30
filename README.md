@@ -1,19 +1,21 @@
+<img src=".claude-plugin/icon.png" alt="" width="96">
+
 # HevyCoach
 
-An MCP server and a typed SDK for the [Hevy](https://hevyapp.com) workout app API, so an AI assistant can act as your strength coach.
+An MCP server and a typed SDK for the [Hevy](https://hevyapp.com) workout app API, so an AI assistant can coach you from your real training data: it reads your logged workouts, writes routines straight into the app, and tracks your progression.
 
 ## What is inside
 
 | Package | What it is | Install |
 |---|---|---|
-| [`hevy-coach`](packages/mcp-server) | MCP server with 26 tools for workouts, routines, exercises and body measurements, plus coaching analysis. | `npx hevy-coach` |
+| [`hevy-coach`](packages/mcp-server) | MCP server with 26 tools for workouts, routines, exercises and body measurements, plus coaching analysis. | `npx -y hevy-coach@latest` |
 | [`hevy-sdk`](packages/hevy-sdk) | Typed, fetch-only client for the Hevy public API. Pagination, delta sync, retries. Node 20+ and React Native. | `npm i hevy-sdk` |
 
-The SDK's types are generated from Hevy's OpenAPI spec. Where the spec disagrees with the live API, the generator patches it, and the probe results behind each patch are in `docs/api/`.
+The SDK's types are generated from Hevy's OpenAPI spec. Where the spec and the live API disagree, the live API wins: the generator or the client corrects the difference, and the probe results behind each correction are in `docs/api/`.
 
 ## Quick start
 
-You need a Hevy API key (Hevy Settings → API) and an MCP-capable assistant. Node 22.18 or newer.
+You need Hevy Pro (Hevy offers the API to Pro users only), an API key from [hevy.com/settings?developer](https://hevy.com/settings?developer), and an MCP-capable assistant. Node 22.18 or newer.
 
 Claude Code, as a plugin. This installs the MCP server and a `coach` skill that loads the coaching persona, and asks for your API key during install:
 
@@ -75,7 +77,7 @@ Exercises
 | `get-exercise-templates` | List exercise templates. |
 | `get-exercise-template` | Get one exercise template. |
 | `get-exercise-history` | Logged sets for one exercise. |
-| `create-exercise-template` | Create a custom exercise template. |
+| `create-exercise-template` | Create a custom exercise and return its template id. |
 
 Body measurements and user
 

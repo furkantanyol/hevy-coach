@@ -2,7 +2,7 @@
 
 MCP server that turns an AI assistant into a strength coach with access to your [Hevy](https://hevyapp.com) account. Every read endpoint, routine and workout writes, and coaching tools built on top: workout-vs-plan analysis, exercise progression with estimated 1RM, training summaries, exercise name resolution.
 
-Requires Node 22.18+ and a Hevy API key (Hevy Settings → API).
+Requires Node 22.18+, Hevy Pro (Hevy offers the API to Pro users only) and an API key from [hevy.com/settings?developer](https://hevy.com/settings?developer).
 
 ## Install
 
