@@ -7,6 +7,7 @@
 - `create-exercise-template` description notes the per-account custom exercise cap (403 `exceeds-custom-exercise-limit`).
 - `create-exercise-template` returns `{ exercise_template_id }`, usable directly in routines and workouts. The previous description said the returned id was not a template id; live, it is (`docs/api/probes-2026-10-30.md`).
 - `rest_seconds` on routine exercises says that `0` means no timer and that a superset needs `0` on every exercise except the last.
+- Tool results are compact JSON instead of 2-space indented. A page of 8 live routines went from 69,862 to 36,178 characters; the indented version had overflowed Claude Code's tool output limit.
 - `create-workout` always returns a bare workout object, whether or not the API wraps it in `{ workout: [...] }` as the 2026-10-29 spec documents.
 - `create-routine` and `update-routine` say that routine-level `notes` is not returned by any read endpoint (verified live 2026-10-29), so it cannot be confirmed through the API.
 

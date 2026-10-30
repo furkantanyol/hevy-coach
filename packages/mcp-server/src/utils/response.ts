@@ -2,7 +2,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { HevyApiError, HevyNetworkError } from "hevy-sdk";
 
 export function jsonResponse(data: unknown): CallToolResult {
-  return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  // Compact: indentation nearly doubles a page of routines and pushed it past client output limits.
+  return { content: [{ type: "text", text: JSON.stringify(data) }] };
 }
 
 export function textResponse(text: string): CallToolResult {
