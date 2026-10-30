@@ -91,7 +91,9 @@ export const routineExerciseSchema = z.object({
   superset_id: nullableInt.describe(
     "Same integer on every exercise in one superset; null otherwise",
   ),
-  rest_seconds: nullableInt.describe("Rest between sets in seconds"),
+  rest_seconds: nullableInt.describe(
+    "Rest timer after each set of this exercise, in seconds; 0 = no timer. Hevy runs it per exercise, so in a superset set 0 on every exercise except the last, or the user rests between them.",
+  ),
   notes: z.string().optional().describe("Coaching cue shown in the app"),
   sets: z.array(routineSetSchema).min(1),
 });

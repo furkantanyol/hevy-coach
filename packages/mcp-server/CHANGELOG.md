@@ -5,6 +5,8 @@
 - `get-user-info` now returns username, Pro status and the user's weight and distance units (hevy-sdk 1.1.0, 2026-10-29 spec).
 - `get-exercise-template` and `get-exercise-templates` include `thumbnail_url`.
 - `create-exercise-template` description notes the per-account custom exercise cap (403 `exceeds-custom-exercise-limit`).
+- `create-exercise-template` returns `{ exercise_template_id }`, usable directly in routines and workouts. The previous description said the returned id was not a template id; live, it is (`docs/api/probes-2026-10-30.md`).
+- `rest_seconds` on routine exercises says that `0` means no timer and that a superset needs `0` on every exercise except the last.
 - `create-workout` always returns a bare workout object, whether or not the API wraps it in `{ workout: [...] }` as the 2026-10-29 spec documents.
 - `create-routine` and `update-routine` say that routine-level `notes` is not returned by any read endpoint (verified live 2026-10-29), so it cannot be confirmed through the API.
 
