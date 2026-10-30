@@ -32,6 +32,13 @@ describe("bodyMeasurements.upsert", () => {
 });
 
 describe("response envelopes", () => {
+  const customExercise = {
+    title: "Hand Gripper",
+    exercise_type: "reps_only",
+    muscle_group: "forearms",
+    equipment_category: "other",
+  } as const;
+
   it("should unwrap POST /workouts {workout: [w]} and accept a bare workout", async () => {
     const fetchFn = mockFetch({ body: { workout: [{ id: "w1" }] } }, { body: { id: "w1" } });
     const client = createHevyClient({ apiKey: "k", fetch: fetchFn });
@@ -47,6 +54,23 @@ describe("response envelopes", () => {
     const client = createHevyClient({ apiKey: "k", fetch: mockFetch({ body: { workout: [] } }) });
     const input = { title: "t", start_time: "s", end_time: "e", is_private: false, exercises: [] };
     await expect(client.workouts.create(input)).rejects.toThrow(/empty workout array/);
+  });
+
+  it("should return the new template id when POST /exercise_templates sends it as a JSON string or plain text", async () => {
+    const fetchFn = mockFetch({ body: '"t1"' }, { body: "t1" });
+    const client = createHevyClient({ apiKey: "k", fetch: fetchFn });
+    const ids = [
+      await client.exerciseTemplates.create(customExercise),
+      await client.exerciseTemplates.create(customExercise),
+    ];
+    expect(ids).toEqual(["t1", "t1"]);
+  });
+
+  it("should throw instead of returning the documented {id}, which is not a template id", async () => {
+    const client = createHevyClient({ apiKey: "k", fetch: mockFetch({ body: { id: 123 } }) });
+    await expect(client.exerciseTemplates.create(customExercise)).rejects.toThrow(
+      /not a template id/,
+    );
   });
 
   it("should unwrap GET /routines/{id} and accept bare or wrapped PUT responses", async () => {

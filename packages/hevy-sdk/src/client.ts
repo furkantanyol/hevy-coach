@@ -138,12 +138,15 @@ export function createHevyClient(options: HevyClientOptions) {
         ),
       get: (exerciseTemplateId: string) =>
         get<ExerciseTemplate>(`/exercise_templates/${exerciseTemplateId}`),
+      /** Resolves to the new exercise template id, ready for routines and workouts. */
       create: (exercise: CreateExerciseTemplateInput) =>
-        http.request<{ id: number }>({
-          method: "POST",
-          path: "/exercise_templates",
-          body: { exercise },
-        }),
+        http
+          .request<string | { id: number } | undefined>({
+            method: "POST",
+            path: "/exercise_templates",
+            body: { exercise },
+          })
+          .then(unwrapTemplateId),
     },
 
     exerciseHistory: {
@@ -221,4 +224,13 @@ function unwrapWorkout(result: Workout | { workout: Workout[] }): Workout {
     throw new Error("POST /workouts succeeded but returned an empty workout array; do not retry");
   }
   return created;
+}
+
+// Observed live 2026-10-30: POST /exercise_templates returned the new template id as a bare string
+// (docs/api/probes-2026-10-30.md). The spec documents {id: integer}, which would not be a template id, so it is rejected.
+function unwrapTemplateId(result: string | { id: number } | undefined): string {
+  if (typeof result === "string") return result;
+  throw new Error(
+    `POST /exercise_templates succeeded but returned ${JSON.stringify(result)}, not a template id; find it by title, do not retry`,
+  );
 }

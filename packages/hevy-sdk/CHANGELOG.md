@@ -9,6 +9,7 @@ Types regenerated from the 2026-10-29 OpenAPI document (`docs/api/probes-2026-10
 - `workouts.create()` unwraps the `{ workout: [Workout] }` response the spec now documents; a bare `Workout` is still accepted.
 - `Routine.exercises[].rest_seconds` and `notes`, `Workout.description` and `exercises[].notes` are typed nullable, matching the spec.
 - `RoutineSet` no longer has `rpe`: the spec dropped it and live routine responses do not carry it (RPE is workout-only). Code reading `rpe` on routine sets will stop compiling.
+- `exerciseTemplates.create()` resolves to the new exercise template id (a string), the shape observed live on 2026-10-30 (`docs/api/probes-2026-10-30.md`). It was typed `{ id: number }` from the spec, and it now throws if the API ever sends that shape. Code reading `.id` on the result will stop compiling.
 - `POST /body_measurements` is documented as `201` with an empty body; the client already handled that.
 - Two generator patches removed because the spec now agrees with the live API (`rest_seconds` type, `routine_id` nullable).
 
