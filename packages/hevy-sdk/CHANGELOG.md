@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (2026-10-29)
+## 1.1.0 (2026-10-30)
 
 Types regenerated from the 2026-10-29 OpenAPI document (`docs/api/probes-2026-10-29.md`).
 

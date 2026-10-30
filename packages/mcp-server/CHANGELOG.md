@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (2026-10-29)
+## 1.1.0 (2026-10-30)
 
 - `get-user-info` now returns username, Pro status and the user's weight and distance units (hevy-sdk 1.1.0, 2026-10-29 spec).
 - `get-exercise-template` and `get-exercise-templates` include `thumbnail_url`.
