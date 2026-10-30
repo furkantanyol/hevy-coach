@@ -1,6 +1,7 @@
 {
   "name": "hevy-coach",
   "owner": { "name": "Furkan Tanyol" },
+  "description": "The hevy-coach plugin: Hevy workout tracker tools and an AI strength coach for Claude Code.",
   "plugins": [
     {
       "name": "hevy-coach",
